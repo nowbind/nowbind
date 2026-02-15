@@ -1,28 +1,46 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/hooks/use-auth";
 import type { ApiKey } from "@/lib/types";
 import { Key, Plus, Trash2, Copy, Check } from "lucide-react";
 
 export default function ApiKeysPage() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [newKey, setNewKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      router.push("/login");
+      return;
+    }
     api
       .get<ApiKey[]>("/api-keys")
       .then((k) => setKeys(k || []))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [user, authLoading, router]);
 
   const createKey = async () => {
     setCreating(true);
@@ -40,17 +58,22 @@ export default function ApiKeysPage() {
     }
   };
 
-  const deleteKey = async (id: string) => {
-    if (!confirm("Delete this API key?")) return;
-    await api.delete(`/api-keys/${id}`);
-    setKeys(keys.filter((k) => k.id !== id));
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    await api.delete(`/api-keys/${deleteId}`);
+    setKeys(keys.filter((k) => k.id !== deleteId));
+    setDeleteId(null);
   };
 
   const copyKey = async () => {
     if (newKey) {
-      await navigator.clipboard.writeText(newKey);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      try {
+        await navigator.clipboard.writeText(newKey);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch {
+        // Clipboard API unavailable
+      }
     }
   };
 
@@ -81,10 +104,10 @@ export default function ApiKeysPage() {
                 New API key created. Copy it now — it won&apos;t be shown again.
               </p>
               <div className="flex items-center gap-2">
-                <code className="flex-1 rounded bg-background p-2 font-mono text-xs">
+                <code className="min-w-0 flex-1 truncate rounded bg-background p-2 font-mono text-xs">
                   {newKey}
                 </code>
-                <Button variant="outline" size="icon" onClick={copyKey}>
+                <Button variant="outline" size="icon" className="shrink-0" onClick={copyKey}>
                   {copied ? (
                     <Check className="h-4 w-4 text-green-500" />
                   ) : (
@@ -115,7 +138,7 @@ export default function ApiKeysPage() {
                   key={key.id}
                   className="flex items-center justify-between rounded-lg border p-4"
                 >
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <code className="text-sm font-medium">{key.key_prefix}</code>
                     <p className="text-xs text-muted-foreground">
                       Created {new Date(key.created_at).toLocaleDateString()}
@@ -126,8 +149,8 @@ export default function ApiKeysPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-destructive"
-                    onClick={() => deleteKey(key.id)}
+                    className="shrink-0 text-destructive"
+                    onClick={() => setDeleteId(key.id)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -138,6 +161,27 @@ export default function ApiKeysPage() {
         </div>
       </main>
       <Footer />
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete API Key</DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. Any applications using this key will
+              lose access immediately.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteId(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

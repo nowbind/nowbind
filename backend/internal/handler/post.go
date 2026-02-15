@@ -14,10 +14,11 @@ import (
 type PostHandler struct {
 	postService *service.PostService
 	postRepo    *repository.PostRepository
+	socialH     *SocialHandler
 }
 
-func NewPostHandler(postService *service.PostService, postRepo *repository.PostRepository) *PostHandler {
-	return &PostHandler{postService: postService, postRepo: postRepo}
+func NewPostHandler(postService *service.PostService, postRepo *repository.PostRepository, socialH *SocialHandler) *PostHandler {
+	return &PostHandler{postService: postService, postRepo: postRepo, socialH: socialH}
 }
 
 func (h *PostHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -46,6 +47,8 @@ func (h *PostHandler) List(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to list posts")
 		return
 	}
+
+	h.socialH.EnrichPostSlice(r, posts)
 
 	totalPages := total / perPage
 	if total%perPage > 0 {
@@ -81,6 +84,8 @@ func (h *PostHandler) GetBySlug(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
+	h.socialH.EnrichPost(r, post)
 
 	writeJSON(w, http.StatusOK, post)
 }

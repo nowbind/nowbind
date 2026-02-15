@@ -16,10 +16,10 @@ func NewLikeRepository(pool *pgxpool.Pool) *LikeRepository {
 	return &LikeRepository{pool: pool}
 }
 
-func (r *LikeRepository) Like(ctx context.Context, userID, postID string) error {
+func (r *LikeRepository) Like(ctx context.Context, userID, postID string) (bool, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer tx.Rollback(ctx)
 
@@ -28,19 +28,19 @@ func (r *LikeRepository) Like(ctx context.Context, userID, postID string) error 
 		userID, postID,
 	)
 	if err != nil {
-		return fmt.Errorf("inserting like: %w", err)
+		return false, fmt.Errorf("inserting like: %w", err)
 	}
 	if tag.RowsAffected() == 0 {
-		return nil // already liked
+		return false, nil // already liked
 	}
 
 	_, err = tx.Exec(ctx,
 		`UPDATE posts SET like_count = like_count + 1 WHERE id = $1`, postID)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	return tx.Commit(ctx)
+	return true, tx.Commit(ctx)
 }
 
 func (r *LikeRepository) Unlike(ctx context.Context, userID, postID string) error {

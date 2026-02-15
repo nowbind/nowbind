@@ -8,11 +8,12 @@ import (
 )
 
 type SearchHandler struct {
-	posts *repository.PostRepository
+	posts   *repository.PostRepository
+	socialH *SocialHandler
 }
 
-func NewSearchHandler(posts *repository.PostRepository) *SearchHandler {
-	return &SearchHandler{posts: posts}
+func NewSearchHandler(posts *repository.PostRepository, socialH *SocialHandler) *SearchHandler {
+	return &SearchHandler{posts: posts, socialH: socialH}
 }
 
 func (h *SearchHandler) Search(w http.ResponseWriter, r *http.Request) {
@@ -36,6 +37,8 @@ func (h *SearchHandler) Search(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "search failed")
 		return
 	}
+
+	h.socialH.EnrichPostSlice(r, posts)
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"query": query,

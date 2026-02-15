@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/nowbind/nowbind/internal/model"
 	"github.com/nowbind/nowbind/internal/repository"
@@ -47,19 +48,24 @@ func (s *SocialService) Follow(ctx context.Context, followerID, followingUsernam
 		return fmt.Errorf("cannot follow yourself")
 	}
 
-	if err := s.follows.Follow(ctx, followerID, target.ID); err != nil {
+	isNew, err := s.follows.Follow(ctx, followerID, target.ID)
+	if err != nil {
 		return err
 	}
 
-	// Create notification
-	go func() {
-		n := &model.Notification{
-			UserID:  target.ID,
-			Type:    "new_follower",
-			ActorID: &followerID,
-		}
-		s.notifications.Create(context.Background(), n)
-	}()
+	// Only create notification for new follows (not re-follows)
+	if isNew {
+		go func() {
+			n := &model.Notification{
+				UserID:  target.ID,
+				Type:    "new_follower",
+				ActorID: &followerID,
+			}
+			if err := s.notifications.Create(context.Background(), n); err != nil {
+				log.Printf("failed to create follow notification: %v", err)
+			}
+		}()
+	}
 
 	return nil
 }
@@ -73,24 +79,29 @@ func (s *SocialService) Unfollow(ctx context.Context, followerID, followingUsern
 }
 
 func (s *SocialService) Like(ctx context.Context, userID, postID string) error {
-	if err := s.likes.Like(ctx, userID, postID); err != nil {
+	isNew, err := s.likes.Like(ctx, userID, postID)
+	if err != nil {
 		return err
 	}
 
-	// Create notification for post author
-	go func() {
-		post, err := s.posts.GetByID(context.Background(), postID)
-		if err != nil || post == nil || post.AuthorID == userID {
-			return
-		}
-		n := &model.Notification{
-			UserID:  post.AuthorID,
-			Type:    "new_like",
-			ActorID: &userID,
-			PostID:  &postID,
-		}
-		s.notifications.Create(context.Background(), n)
-	}()
+	// Only create notification for new likes (not re-likes)
+	if isNew {
+		go func() {
+			post, err := s.posts.GetByID(context.Background(), postID)
+			if err != nil || post == nil || post.AuthorID == userID {
+				return
+			}
+			n := &model.Notification{
+				UserID:  post.AuthorID,
+				Type:    "new_like",
+				ActorID: &userID,
+				PostID:  &postID,
+			}
+			if err := s.notifications.Create(context.Background(), n); err != nil {
+				log.Printf("failed to create like notification: %v", err)
+			}
+		}()
+	}
 
 	return nil
 }
@@ -117,7 +128,9 @@ func (s *SocialService) CreateComment(ctx context.Context, comment *model.Commen
 			PostID:    &comment.PostID,
 			CommentID: &comment.ID,
 		}
-		s.notifications.Create(context.Background(), n)
+		if err := s.notifications.Create(context.Background(), n); err != nil {
+			log.Printf("failed to create comment notification: %v", err)
+		}
 	}()
 
 	return nil

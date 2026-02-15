@@ -89,6 +89,8 @@ func (h *SocialHandler) GetFollowers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.enrichUsersWithFollowState(r, users)
+
 	totalPages := total / perPage
 	if total%perPage > 0 {
 		totalPages++
@@ -126,6 +128,8 @@ func (h *SocialHandler) GetFollowing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.enrichUsersWithFollowState(r, users)
+
 	totalPages := total / perPage
 	if total%perPage > 0 {
 		totalPages++
@@ -138,6 +142,23 @@ func (h *SocialHandler) GetFollowing(w http.ResponseWriter, r *http.Request) {
 		"per_page":    perPage,
 		"total_pages": totalPages,
 	})
+}
+
+// enrichUsersWithFollowState sets IsFollowing on each user for the current logged-in user.
+func (h *SocialHandler) enrichUsersWithFollowState(r *http.Request, users []model.User) {
+	meID := middleware.GetUserID(r.Context())
+	if meID == "" || len(users) == 0 {
+		return
+	}
+	for i := range users {
+		if users[i].ID == meID {
+			continue
+		}
+		following, err := h.follows.IsFollowing(r.Context(), meID, users[i].ID)
+		if err == nil {
+			users[i].IsFollowing = following
+		}
+	}
 }
 
 func (h *SocialHandler) Feed(w http.ResponseWriter, r *http.Request) {
@@ -165,46 +186,17 @@ func (h *SocialHandler) Feed(w http.ResponseWriter, r *http.Request) {
 		perPage = 10
 	}
 
-	// Use the existing List method with each followed author
-	// For simplicity, we use a combined query approach
-	var allPosts []model.Post
-	total := 0
-	for _, followID := range followingIDs {
-		posts, count, err := h.posts.List(r.Context(), repository.ListPostsParams{
-			Status:   "published",
-			AuthorID: followID,
-			Page:     1,
-			PerPage:  50,
-		})
-		if err == nil {
-			allPosts = append(allPosts, posts...)
-			total += count
-		}
+	paged, total, err := h.posts.List(r.Context(), repository.ListPostsParams{
+		Status:    "published",
+		AuthorIDs: followingIDs,
+		Page:      page,
+		PerPage:   perPage,
+	})
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to get feed")
+		return
 	}
 
-	// Sort by published_at desc (simple sort)
-	for i := 0; i < len(allPosts); i++ {
-		for j := i + 1; j < len(allPosts); j++ {
-			ti := allPosts[i].PublishedAt
-			tj := allPosts[j].PublishedAt
-			if ti != nil && tj != nil && tj.After(*ti) {
-				allPosts[i], allPosts[j] = allPosts[j], allPosts[i]
-			}
-		}
-	}
-
-	// Paginate
-	start := (page - 1) * perPage
-	end := start + perPage
-	if start > len(allPosts) {
-		start = len(allPosts)
-	}
-	if end > len(allPosts) {
-		end = len(allPosts)
-	}
-	paged := allPosts[start:end]
-
-	// Enrich with like/bookmark status
 	h.enrichPosts(r, paged)
 
 	totalPages := total / perPage

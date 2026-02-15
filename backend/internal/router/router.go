@@ -49,15 +49,15 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 	// Handlers
 	healthH := handler.NewHealthHandler()
 	authH := handler.NewAuthHandler(authService, cfg)
-	postH := handler.NewPostHandler(postService, postRepo)
-	userH := handler.NewUserHandler(userRepo, postRepo)
-	tagH := handler.NewTagHandler(tagRepo, postRepo)
-	searchH := handler.NewSearchHandler(postRepo)
+	socialH := handler.NewSocialHandler(socialService, followRepo, likeRepo, bookmarkRepo, commentRepo, postRepo, userRepo)
+	postH := handler.NewPostHandler(postService, postRepo, socialH)
+	userH := handler.NewUserHandler(userRepo, postRepo, followRepo, socialH)
+	tagH := handler.NewTagHandler(tagRepo, postRepo, socialH)
+	searchH := handler.NewSearchHandler(postRepo, socialH)
 	feedH := handler.NewFeedHandler(postRepo, cfg.FrontendURL, cfg.FrontendURL)
 	llmsH := handler.NewLLMSHandler(postRepo, cfg.FrontendURL)
 	agentH := handler.NewAgentHandler(postRepo, tagRepo, userRepo, cfg.FrontendURL)
 	apiKeyH := handler.NewApiKeyHandler(apiKeyRepo)
-	socialH := handler.NewSocialHandler(socialService, followRepo, likeRepo, bookmarkRepo, commentRepo, postRepo, userRepo)
 	notifH := handler.NewNotificationHandler(notifRepo, pushRepo, notifService)
 	analyticsH := handler.NewAnalyticsHandler(analyticsRepo, postRepo)
 
@@ -88,9 +88,9 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 		// Posts (public)
 		r.Route("/posts", func(r chi.Router) {
 			r.With(middleware.OptionalAuth(cfg.JWTSecret)).Get("/", postH.List)
-			r.With(middleware.OptionalAuth(cfg.JWTSecret)).Get("/trending", trendingHandler(postRepo))
+			r.With(middleware.OptionalAuth(cfg.JWTSecret)).Get("/trending", trendingHandler(postRepo, socialH))
 			r.With(middleware.OptionalAuth(cfg.JWTSecret)).Get("/{slug}", postH.GetBySlug)
-			r.With(middleware.OptionalAuth(cfg.JWTSecret)).Get("/{slug}/related", relatedHandler(postRepo))
+			r.With(middleware.OptionalAuth(cfg.JWTSecret)).Get("/{slug}/related", relatedHandler(postRepo, socialH))
 			r.Post("/{slug}/view", analyticsH.TrackView)
 
 			// Authenticated
@@ -114,10 +114,10 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 
 		// Users
 		r.Route("/users", func(r chi.Router) {
-			r.Get("/{username}", userH.GetByUsername)
-			r.Get("/{username}/posts", userH.GetUserPosts)
-			r.Get("/{username}/followers", socialH.GetFollowers)
-			r.Get("/{username}/following", socialH.GetFollowing)
+			r.With(middleware.OptionalAuth(cfg.JWTSecret)).Get("/{username}", userH.GetByUsername)
+			r.With(middleware.OptionalAuth(cfg.JWTSecret)).Get("/{username}/posts", userH.GetUserPosts)
+			r.With(middleware.OptionalAuth(cfg.JWTSecret)).Get("/{username}/followers", socialH.GetFollowers)
+			r.With(middleware.OptionalAuth(cfg.JWTSecret)).Get("/{username}/following", socialH.GetFollowing)
 
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.AuthMiddleware(cfg.JWTSecret))
@@ -208,7 +208,7 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 	return r
 }
 
-func trendingHandler(postRepo *repository.PostRepository) http.HandlerFunc {
+func trendingHandler(postRepo *repository.PostRepository, socialH *handler.SocialHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		days, _ := strconv.Atoi(r.URL.Query().Get("days"))
 		limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
@@ -225,13 +225,14 @@ func trendingHandler(postRepo *repository.PostRepository) http.HandlerFunc {
 			w.Write([]byte(`{"error":"failed to get trending posts"}`))
 			return
 		}
+		socialH.EnrichPostSlice(r, posts)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		handler.WriteJSONPublic(w, posts)
 	}
 }
 
-func relatedHandler(postRepo *repository.PostRepository) http.HandlerFunc {
+func relatedHandler(postRepo *repository.PostRepository, socialH *handler.SocialHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		slug := chi.URLParam(r, "slug")
 		post, err := postRepo.GetBySlug(r.Context(), slug)
@@ -252,6 +253,7 @@ func relatedHandler(postRepo *repository.PostRepository) http.HandlerFunc {
 			w.Write([]byte(`{"error":"failed to get related posts"}`))
 			return
 		}
+		socialH.EnrichPostSlice(r, related)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		handler.WriteJSONPublic(w, related)

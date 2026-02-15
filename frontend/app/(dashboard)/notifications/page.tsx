@@ -1,15 +1,19 @@
 "use client";
 
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { NotificationItem } from "@/components/social/notification-item";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/lib/hooks/use-notifications";
+import { useAuth } from "@/lib/hooks/use-auth";
 import { Bell } from "lucide-react";
 
 export default function NotificationsPage() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const {
     notifications,
     loading,
@@ -20,8 +24,13 @@ export default function NotificationsPage() {
   } = useNotifications();
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      router.push("/login");
+      return;
+    }
     fetchNotifications();
-  }, [fetchNotifications]);
+  }, [fetchNotifications, user, authLoading, router]);
 
   return (
     <div className="flex min-h-screen flex-col">

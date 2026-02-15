@@ -17,9 +17,13 @@ export function ShareButtons({ url, title }: ShareButtonsProps) {
     : url;
 
   const copyLink = async () => {
-    await navigator.clipboard.writeText(fullUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(fullUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API unavailable (HTTP or old browser)
+    }
   };
 
   const shareTwitter = () => {

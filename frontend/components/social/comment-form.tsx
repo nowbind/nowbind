@@ -21,6 +21,7 @@ export function CommentForm({
   const { user } = useAuth();
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   if (!user) {
     return (
@@ -34,9 +35,12 @@ export function CommentForm({
     e.preventDefault();
     if (!content.trim()) return;
     setSubmitting(true);
+    setError("");
     try {
       await onSubmit(content.trim());
       setContent("");
+    } catch {
+      setError("Failed to post comment. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -51,6 +55,7 @@ export function CommentForm({
         rows={3}
         className="min-h-20 resize-none"
       />
+      {error && <p className="text-sm text-destructive">{error}</p>}
       <div className="flex items-center gap-2">
         <Button type="submit" size="sm" disabled={submitting || !content.trim()}>
           {submitLabel}

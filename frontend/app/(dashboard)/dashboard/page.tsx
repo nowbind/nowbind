@@ -2,12 +2,22 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/hooks/use-auth";
 import type { Post, PaginatedResponse } from "@/lib/types";
 import {
   PenSquare,
@@ -25,16 +35,24 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      router.push("/login");
+      return;
+    }
     api
       .get<PaginatedResponse<Post>>("/users/me/posts")
       .then((res) => setPosts(res.data || []))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [user, authLoading, router]);
 
   const handlePublish = async (id: string) => {
     await api.post(`/posts/${id}/publish`);
@@ -48,10 +66,11 @@ export default function DashboardPage() {
     setPosts(posts.map((p) => (p.id === id ? { ...p, status: "draft" } : p)));
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this post?")) return;
-    await api.delete(`/posts/${id}`);
-    setPosts(posts.filter((p) => p.id !== id));
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    await api.delete(`/posts/${deleteId}`);
+    setPosts(posts.filter((p) => p.id !== deleteId));
+    setDeleteId(null);
   };
 
   return (
@@ -100,7 +119,7 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-2">
                       <Link
                         href={`/post/${post.slug}`}
-                        className="truncate font-medium hover:underline"
+                        className="truncate font-semibold hover:underline"
                       >
                         {post.title}
                       </Link>
@@ -152,7 +171,7 @@ export default function DashboardPage() {
                       )}
                       <DropdownMenuItem
                         className="text-destructive"
-                        onClick={() => handleDelete(post.id)}
+                        onClick={() => setDeleteId(post.id)}
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Delete
@@ -166,6 +185,26 @@ export default function DashboardPage() {
         </div>
       </main>
       <Footer />
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Post</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this post? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteId(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

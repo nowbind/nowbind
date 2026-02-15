@@ -16,33 +16,36 @@ func NewFollowRepository(pool *pgxpool.Pool) *FollowRepository {
 	return &FollowRepository{pool: pool}
 }
 
-func (r *FollowRepository) Follow(ctx context.Context, followerID, followingID string) error {
+func (r *FollowRepository) Follow(ctx context.Context, followerID, followingID string) (bool, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer tx.Rollback(ctx)
 
-	_, err = tx.Exec(ctx,
+	tag, err := tx.Exec(ctx,
 		`INSERT INTO follows (follower_id, following_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
 		followerID, followingID,
 	)
 	if err != nil {
-		return fmt.Errorf("inserting follow: %w", err)
+		return false, fmt.Errorf("inserting follow: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return false, nil // already following
 	}
 
 	_, err = tx.Exec(ctx,
 		`UPDATE users SET following_count = following_count + 1 WHERE id = $1`, followerID)
 	if err != nil {
-		return err
+		return false, err
 	}
 	_, err = tx.Exec(ctx,
 		`UPDATE users SET follower_count = follower_count + 1 WHERE id = $1`, followingID)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	return tx.Commit(ctx)
+	return true, tx.Commit(ctx)
 }
 
 func (r *FollowRepository) Unfollow(ctx context.Context, followerID, followingID string) error {

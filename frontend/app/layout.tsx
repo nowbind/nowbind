@@ -7,6 +7,8 @@ import NextTopLoader from "nextjs-toploader";
 import { SearchDialog } from "@/components/search/search-dialog";
 import { AuthProvider } from "@/lib/auth-context";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
+import { SwRegister } from "@/components/pwa/sw-register";
+import { OfflineStatus } from "@/components/pwa/offline-status";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-sans",
@@ -121,12 +123,15 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            <TooltipProvider>
-              <NextTopLoader color="var(--primary)" showSpinner={false} />
-              <SearchDialog />
-              {children}
-              <InstallPrompt />
-            </TooltipProvider>
+            <SwRegister>
+              <TooltipProvider>
+                <NextTopLoader color="var(--primary)" showSpinner={false} />
+                <SearchDialog />
+                {children}
+                <InstallPrompt />
+                <OfflineStatus />
+              </TooltipProvider>
+            </SwRegister>
           </AuthProvider>
         </ThemeProvider>
       </body>

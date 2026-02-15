@@ -1,8 +1,12 @@
 package handler
 
 import (
+	"context"
+	"log"
+	"net"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/nowbind/nowbind/internal/middleware"
@@ -29,13 +33,22 @@ func (h *AnalyticsHandler) TrackView(w http.ResponseWriter, r *http.Request) {
 
 	viewerIP := r.RemoteAddr
 	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
-		viewerIP = fwd
+		viewerIP = strings.SplitN(fwd, ",", 2)[0]
 	}
+	viewerIP = strings.TrimSpace(viewerIP)
+
+	// Strip port from ip:port format (r.RemoteAddr includes port)
+	if host, _, err := net.SplitHostPort(viewerIP); err == nil {
+		viewerIP = host
+	}
+
 	referrer := r.Header.Get("Referer")
 	userAgent := r.Header.Get("User-Agent")
 
 	go func() {
-		h.analytics.RecordView(r.Context(), post.ID, viewerIP, referrer, "web", userAgent)
+		if err := h.analytics.RecordView(context.Background(), post.ID, viewerIP, referrer, "web", userAgent); err != nil {
+			log.Printf("failed to record view for post %s: %v", post.ID, err)
+		}
 	}()
 
 	w.WriteHeader(http.StatusNoContent)

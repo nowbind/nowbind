@@ -38,6 +38,11 @@ class ApiClient {
           if (retryRes.status === 204) return undefined as T;
           return retryRes.json();
         }
+        // Retry failed with non-401 error - throw that error, don't redirect
+        if (retryRes.status !== 401) {
+          const body = await retryRes.json().catch(() => ({}));
+          throw new ApiError(retryRes.status, body.error || retryRes.statusText, body);
+        }
       }
       // Only redirect if caller didn't opt out
       if (!opts?.noRedirect && typeof window !== "undefined") {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { api } from "@/lib/api";
 
 export function useFollow(initialFollowing: boolean = false) {
@@ -35,6 +35,10 @@ export function useLike(initialLiked: boolean = false, initialCount: number = 0)
   const [count, setCount] = useState(initialCount);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    setIsLiked(initialLiked);
+  }, [initialLiked]);
+
   const toggle = useCallback(
     async (postId: string) => {
       setLoading(true);
@@ -63,6 +67,10 @@ export function useLike(initialLiked: boolean = false, initialCount: number = 0)
 export function useBookmark(initialBookmarked: boolean = false) {
   const [isBookmarked, setIsBookmarked] = useState(initialBookmarked);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setIsBookmarked(initialBookmarked);
+  }, [initialBookmarked]);
 
   const toggle = useCallback(
     async (postId: string) => {

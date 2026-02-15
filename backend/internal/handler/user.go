@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/nowbind/nowbind/internal/middleware"
@@ -11,12 +12,14 @@ import (
 )
 
 type UserHandler struct {
-	users *repository.UserRepository
-	posts *repository.PostRepository
+	users   *repository.UserRepository
+	posts   *repository.PostRepository
+	follows *repository.FollowRepository
+	socialH *SocialHandler
 }
 
-func NewUserHandler(users *repository.UserRepository, posts *repository.PostRepository) *UserHandler {
-	return &UserHandler{users: users, posts: posts}
+func NewUserHandler(users *repository.UserRepository, posts *repository.PostRepository, follows *repository.FollowRepository, socialH *SocialHandler) *UserHandler {
+	return &UserHandler{users: users, posts: posts, follows: follows, socialH: socialH}
 }
 
 func (h *UserHandler) GetByUsername(w http.ResponseWriter, r *http.Request) {
@@ -30,6 +33,15 @@ func (h *UserHandler) GetByUsername(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "user not found")
 		return
 	}
+
+	// Enrich with is_following if there's a logged-in user
+	if meID := middleware.GetUserID(r.Context()); meID != "" && meID != user.ID {
+		following, err := h.follows.IsFollowing(r.Context(), meID, user.ID)
+		if err == nil {
+			user.IsFollowing = following
+		}
+	}
+
 	writeJSON(w, http.StatusOK, user)
 }
 
@@ -60,6 +72,8 @@ func (h *UserHandler) GetUserPosts(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to list posts")
 		return
 	}
+
+	h.socialH.EnrichPostSlice(r, posts)
 
 	totalPages := total / perPage
 	if total%perPage > 0 {
@@ -93,11 +107,11 @@ func (h *UserHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if input.DisplayName != "" {
-		user.DisplayName = input.DisplayName
+	if dn := strings.TrimSpace(input.DisplayName); dn != "" {
+		user.DisplayName = dn
 	}
-	if input.Bio != "" {
-		user.Bio = input.Bio
+	if b := strings.TrimSpace(input.Bio); b != "" {
+		user.Bio = b
 	}
 	if input.AvatarURL != "" {
 		user.AvatarURL = input.AvatarURL

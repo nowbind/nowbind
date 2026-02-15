@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import {
   vscDarkPlus,
@@ -17,16 +17,25 @@ interface CodeBlockProps {
 
 export function CodeBlock({ children, language = "text" }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { resolvedTheme } = useTheme();
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(children);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(children);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API unavailable
+    }
   };
 
   return (
-    <div className="group relative my-4 overflow-hidden rounded-lg border">
+    <div className="group relative my-4 overflow-hidden rounded-lg border [&_pre]:!bg-transparent">
       <div className="flex items-center justify-between border-b bg-muted/50 px-4 py-2">
         <span className="text-xs text-muted-foreground">{language}</span>
         <Button
@@ -42,18 +51,23 @@ export function CodeBlock({ children, language = "text" }: CodeBlockProps) {
           )}
         </Button>
       </div>
-      <SyntaxHighlighter
-        language={language}
-        style={resolvedTheme === "dark" ? vscDarkPlus : vs}
-        customStyle={{
-          margin: 0,
-          padding: "1rem",
-          background: "transparent",
-          fontSize: "0.875rem",
-        }}
-      >
-        {children}
-      </SyntaxHighlighter>
+      {mounted ? (
+        <SyntaxHighlighter
+          language={language}
+          style={resolvedTheme === "dark" ? vscDarkPlus : vs}
+          customStyle={{
+            margin: 0,
+            padding: "1rem",
+            fontSize: "0.875rem",
+          }}
+        >
+          {children}
+        </SyntaxHighlighter>
+      ) : (
+        <pre className="m-0 p-4 overflow-auto bg-transparent text-sm">
+          <code>{children}</code>
+        </pre>
+      )}
     </div>
   );
 }

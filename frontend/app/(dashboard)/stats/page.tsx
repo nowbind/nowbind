@@ -1,15 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/hooks/use-auth";
 import type { StatsOverview, ViewsByDate, PostStatsDetail, ReferrerStat } from "@/lib/types";
 import { BarChart3, Eye, Heart, Users, FileText, Bot } from "lucide-react";
 import Link from "next/link";
 
 export default function StatsPage() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [overview, setOverview] = useState<StatsOverview | null>(null);
   const [timeline, setTimeline] = useState<ViewsByDate[]>([]);
   const [topPosts, setTopPosts] = useState<PostStatsDetail[]>([]);
@@ -17,6 +21,11 @@ export default function StatsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      router.push("/login");
+      return;
+    }
     Promise.all([
       api.get<StatsOverview>("/stats/overview"),
       api.get<ViewsByDate[]>("/stats/timeline", { days: "30" }),
@@ -31,7 +40,7 @@ export default function StatsPage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [user, authLoading, router]);
 
   return (
     <div className="flex min-h-screen flex-col">

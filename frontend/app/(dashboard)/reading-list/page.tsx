@@ -1,22 +1,31 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { PostCard } from "@/components/post/post-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/hooks/use-auth";
 import type { Post, PaginatedResponse } from "@/lib/types";
 import { Bookmark, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function ReadingListPage() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      router.push("/login");
+      return;
+    }
     setLoading(true);
     api
       .get<PaginatedResponse<Post>>("/users/me/bookmarks", {
@@ -29,7 +38,7 @@ export default function ReadingListPage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [page]);
+  }, [page, user, authLoading, router]);
 
   return (
     <div className="flex min-h-screen flex-col">

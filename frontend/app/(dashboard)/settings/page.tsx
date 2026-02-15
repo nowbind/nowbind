@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import type { NotificationPreferences } from "@/lib/types";
 import { Loader2, Save } from "lucide-react";
 
 export default function SettingsPage() {
+  const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
@@ -25,6 +27,11 @@ export default function SettingsPage() {
   const [savingPrefs, setSavingPrefs] = useState(false);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      router.push("/login");
+      return;
+    }
     if (user) {
       setDisplayName(user.display_name || "");
       setBio(user.bio || "");
@@ -33,7 +40,7 @@ export default function SettingsPage() {
         .then(setNotifPrefs)
         .catch(() => {});
     }
-  }, [user]);
+  }, [user, authLoading, router]);
 
   const handleSave = async () => {
     setSaving(true);

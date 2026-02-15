@@ -19,11 +19,12 @@ func NewPostRepository(pool *pgxpool.Pool) *PostRepository {
 }
 
 type ListPostsParams struct {
-	Status   string
-	AuthorID string
-	TagSlug  string
-	Page     int
-	PerPage  int
+	Status    string
+	AuthorID  string
+	AuthorIDs []string
+	TagSlug   string
+	Page      int
+	PerPage   int
 }
 
 func (r *PostRepository) List(ctx context.Context, params ListPostsParams) ([]model.Post, int, error) {
@@ -46,6 +47,11 @@ func (r *PostRepository) List(ctx context.Context, params ListPostsParams) ([]mo
 	if params.AuthorID != "" {
 		conditions = append(conditions, fmt.Sprintf("p.author_id = $%d", argIdx))
 		args = append(args, params.AuthorID)
+		argIdx++
+	}
+	if len(params.AuthorIDs) > 0 {
+		conditions = append(conditions, fmt.Sprintf("p.author_id = ANY($%d)", argIdx))
+		args = append(args, params.AuthorIDs)
 		argIdx++
 	}
 	if params.TagSlug != "" {

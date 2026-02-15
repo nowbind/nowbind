@@ -141,13 +141,13 @@ export default function EditPostPage({ params }: Props) {
               placeholder="Post title..."
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="border-0 bg-transparent text-2xl font-bold placeholder:text-muted-foreground/50 focus-visible:ring-0"
+              className="font-bold text-foreground placeholder:text-muted-foreground"
             />
             <Input
               placeholder="Subtitle (optional)"
               value={subtitle}
               onChange={(e) => setSubtitle(e.target.value)}
-              className="border-0 bg-transparent text-lg text-muted-foreground placeholder:text-muted-foreground/40 focus-visible:ring-0"
+              className="text-foreground/80 placeholder:text-muted-foreground"
             />
           </div>
 
@@ -171,7 +171,7 @@ export default function EditPostPage({ params }: Props) {
                 }
               }}
               onBlur={addTag}
-              className="h-7 w-24 border-0 bg-transparent px-1 text-sm focus-visible:ring-0"
+              className="w-32 text-sm text-foreground placeholder:text-muted-foreground"
             />
           </div>
 
@@ -180,7 +180,7 @@ export default function EditPostPage({ params }: Props) {
               placeholder="Excerpt..."
               value={excerpt}
               onChange={(e) => setExcerpt(e.target.value)}
-              className="text-sm text-muted-foreground"
+              className="text-sm text-foreground/80 placeholder:text-muted-foreground"
             />
           </div>
 

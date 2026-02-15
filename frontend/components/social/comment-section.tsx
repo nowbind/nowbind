@@ -20,8 +20,9 @@ export function CommentSection({ postId, initialCount = 0 }: CommentSectionProps
   const fetchComments = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await api.get<Comment[]>(`/posts/${postId}/comments`);
-      setComments(data || []);
+      const res = await api.get<{ data: Comment[]; total: number }>(`/posts/${postId}/comments`);
+      setComments(res.data || []);
+      setCount(res.total ?? 0);
     } catch {
       // ignore
     } finally {

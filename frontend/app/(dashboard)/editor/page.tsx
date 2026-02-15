@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
@@ -10,10 +10,19 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PostContent } from "@/components/post/post-content";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/hooks/use-auth";
 import { Save, Send, Eye, Edit3, X, Loader2 } from "lucide-react";
 
 export default function EditorPage() {
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      router.push("/login");
+    }
+  }, [user, authLoading, router]);
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [content, setContent] = useState("");
@@ -124,13 +133,13 @@ export default function EditorPage() {
               placeholder="Post title..."
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="border-0 bg-transparent text-2xl font-bold placeholder:text-muted-foreground/50 focus-visible:ring-0"
+              className="font-bold text-foreground placeholder:text-muted-foreground"
             />
             <Input
               placeholder="Subtitle (optional)"
               value={subtitle}
               onChange={(e) => setSubtitle(e.target.value)}
-              className="border-0 bg-transparent text-lg text-muted-foreground placeholder:text-muted-foreground/40 focus-visible:ring-0"
+              className="text-foreground/80 placeholder:text-muted-foreground"
             />
           </div>
 
@@ -150,7 +159,7 @@ export default function EditorPage() {
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={handleTagKeyDown}
               onBlur={addTag}
-              className="h-7 w-24 border-0 bg-transparent px-1 text-sm focus-visible:ring-0"
+              className="w-32 text-sm text-foreground placeholder:text-muted-foreground"
             />
           </div>
 
@@ -160,7 +169,7 @@ export default function EditorPage() {
               placeholder="Excerpt (brief summary for cards and search)..."
               value={excerpt}
               onChange={(e) => setExcerpt(e.target.value)}
-              className="text-sm text-muted-foreground"
+              className="text-sm text-foreground/80 placeholder:text-muted-foreground"
             />
           </div>
 

@@ -9,12 +9,13 @@ import (
 )
 
 type TagHandler struct {
-	tags  *repository.TagRepository
-	posts *repository.PostRepository
+	tags    *repository.TagRepository
+	posts   *repository.PostRepository
+	socialH *SocialHandler
 }
 
-func NewTagHandler(tags *repository.TagRepository, posts *repository.PostRepository) *TagHandler {
-	return &TagHandler{tags: tags, posts: posts}
+func NewTagHandler(tags *repository.TagRepository, posts *repository.PostRepository, socialH *SocialHandler) *TagHandler {
+	return &TagHandler{tags: tags, posts: posts, socialH: socialH}
 }
 
 func (h *TagHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -53,6 +54,8 @@ func (h *TagHandler) GetPostsByTag(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to list posts")
 		return
 	}
+
+	h.socialH.EnrichPostSlice(r, posts)
 
 	totalPages := total / perPage
 	if total%perPage > 0 {
