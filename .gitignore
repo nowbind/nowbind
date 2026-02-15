@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+.next/
+out/
+frontend/.next/
+frontend/out/
+backend/bin/
+backend/tmp/
+
+# Environment
+.env
+.env.local
+.env.production
+.env.*.local
+frontend/.env
+frontend/.env.local
+backend/.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.prof
+
+# Debug
+debug/
+*.log
+
+# Docker
+docker-compose.override.yml
