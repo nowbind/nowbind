@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense } from "react";
 import { Logo } from "@/components/shared/logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api } from "@/lib/api";
 import { API_URL } from "@/lib/constants";
+import { useAuth } from "@/lib/hooks/use-auth";
 import { Mail, ArrowRight, Loader2 } from "lucide-react";
 
 function GoogleIcon({ className }: { className?: string }) {
@@ -43,6 +44,8 @@ function GitHubIcon({ className }: { className?: string }) {
 }
 
 function LoginContent() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const searchParams = useSearchParams();
   const oauthError = searchParams.get("error");
 
@@ -52,6 +55,12 @@ function LoginContent() {
   const [error, setError] = useState(
     oauthError ? "Authentication failed. Please try again." : ""
   );
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.replace("/explore");
+    }
+  }, [user, authLoading, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -66,6 +75,14 @@ function LoginContent() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (authLoading || user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
   return (

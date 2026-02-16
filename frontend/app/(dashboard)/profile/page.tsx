@@ -201,7 +201,7 @@ export default function ProfilePage() {
             onValueChange={setActiveTab}
             className="w-full"
           >
-            <TabsList className="w-full justify-start overflow-x-auto">
+            <TabsList className="w-full justify-start overflow-x-auto scrollbar-hide">
               <TabsTrigger value="posts" className="shrink-0 gap-1.5">
                 <FileText className="h-3.5 w-3.5" />
                 Posts

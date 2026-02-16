@@ -76,7 +76,7 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 			r.Get("/magic-link/verify", authH.VerifyMagicLink)
 			r.Post("/refresh", authH.Refresh)
 			r.Post("/logout", authH.Logout)
-			r.With(middleware.AuthMiddleware(cfg.JWTSecret)).Get("/me", authH.Me)
+			r.With(middleware.AuthMiddleware(cfg.JWTSecret, pool)).Get("/me", authH.Me)
 
 			// OAuth
 			r.Get("/oauth/google", authH.GoogleLogin)
@@ -95,7 +95,7 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 
 			// Authenticated
 			r.Group(func(r chi.Router) {
-				r.Use(middleware.AuthMiddleware(cfg.JWTSecret))
+				r.Use(middleware.AuthMiddleware(cfg.JWTSecret, pool))
 				r.Post("/", postH.Create)
 				r.Put("/{id}", postH.Update)
 				r.Delete("/{id}", postH.Delete)
@@ -109,7 +109,7 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 
 			// Comments (public read, auth write)
 			r.Get("/{id}/comments", socialH.GetComments)
-			r.With(middleware.AuthMiddleware(cfg.JWTSecret)).Post("/{id}/comments", socialH.CreateComment)
+			r.With(middleware.AuthMiddleware(cfg.JWTSecret, pool)).Post("/{id}/comments", socialH.CreateComment)
 		})
 
 		// Users
@@ -120,7 +120,7 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 			r.With(middleware.OptionalAuth(cfg.JWTSecret)).Get("/{username}/following", socialH.GetFollowing)
 
 			r.Group(func(r chi.Router) {
-				r.Use(middleware.AuthMiddleware(cfg.JWTSecret))
+				r.Use(middleware.AuthMiddleware(cfg.JWTSecret, pool))
 				r.Put("/me", userH.UpdateMe)
 				r.Get("/me/posts", userH.MyPosts)
 				r.Get("/me/liked", socialH.GetLikedPosts)
@@ -132,13 +132,13 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 
 		// Comments (edit/delete by ID)
 		r.Route("/comments", func(r chi.Router) {
-			r.Use(middleware.AuthMiddleware(cfg.JWTSecret))
+			r.Use(middleware.AuthMiddleware(cfg.JWTSecret, pool))
 			r.Put("/{id}", socialH.UpdateComment)
 			r.Delete("/{id}", socialH.DeleteComment)
 		})
 
 		// Feed (authenticated)
-		r.With(middleware.AuthMiddleware(cfg.JWTSecret)).Get("/feed", socialH.Feed)
+		r.With(middleware.AuthMiddleware(cfg.JWTSecret, pool)).Get("/feed", socialH.Feed)
 
 		// Tags
 		r.Get("/tags", tagH.List)
@@ -158,7 +158,7 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 			r.Get("/vapid-key", notifH.VAPIDKey)
 
 			r.Group(func(r chi.Router) {
-				r.Use(middleware.AuthMiddleware(cfg.JWTSecret))
+				r.Use(middleware.AuthMiddleware(cfg.JWTSecret, pool))
 				r.Get("/", notifH.List)
 				r.Get("/unread-count", notifH.UnreadCount)
 				r.Post("/{id}/read", notifH.MarkRead)
@@ -172,7 +172,7 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 
 		// Stats (authenticated)
 		r.Route("/stats", func(r chi.Router) {
-			r.Use(middleware.AuthMiddleware(cfg.JWTSecret))
+			r.Use(middleware.AuthMiddleware(cfg.JWTSecret, pool))
 			r.Get("/overview", analyticsH.Overview)
 			r.Get("/timeline", analyticsH.Timeline)
 			r.Get("/top-posts", analyticsH.TopPosts)
@@ -191,7 +191,7 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 
 		// API Keys
 		r.Route("/api-keys", func(r chi.Router) {
-			r.Use(middleware.AuthMiddleware(cfg.JWTSecret))
+			r.Use(middleware.AuthMiddleware(cfg.JWTSecret, pool))
 			r.Post("/", apiKeyH.Create)
 			r.Get("/", apiKeyH.List)
 			r.Delete("/{id}", apiKeyH.Delete)

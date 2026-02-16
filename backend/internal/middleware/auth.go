@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nowbind/nowbind/pkg"
 )
 
@@ -12,7 +13,7 @@ type contextKey string
 
 const UserIDKey contextKey = "user_id"
 
-func AuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
+func AuthMiddleware(jwtSecret string, pool ...*pgxpool.Pool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tokenString := extractToken(r)
@@ -25,6 +26,18 @@ func AuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
 			if err != nil {
 				http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
 				return
+			}
+
+			// Check if user is banned (if DB pool is available)
+			if len(pool) > 0 && pool[0] != nil {
+				var banned bool
+				_ = pool[0].QueryRow(r.Context(),
+					"SELECT EXISTS(SELECT 1 FROM user_bans WHERE user_id=$1)", claims.UserID,
+				).Scan(&banned)
+				if banned {
+					http.Error(w, `{"error":"account suspended"}`, http.StatusForbidden)
+					return
+				}
 			}
 
 			ctx := context.WithValue(r.Context(), UserIDKey, claims.UserID)
