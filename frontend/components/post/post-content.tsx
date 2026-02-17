@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import DOMPurify from "dompurify";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
+import rehypeSanitize from "rehype-sanitize";
 import { CodeBlock } from "@/components/post/code-block";
 import type { Components } from "react-markdown";
 import { generateHTML } from "@tiptap/html";
@@ -105,6 +107,15 @@ const tiptapExtensions = [
   Bookmark,
 ];
 
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .trim();
+}
+
 interface PostContentProps {
   content: string;
   contentJSON?: string;
@@ -113,9 +124,28 @@ interface PostContentProps {
 
 export function PostContent({ content, contentJSON, contentFormat }: PostContentProps) {
   const [mounted, setMounted] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // Add IDs to headings for TOC anchor linking
+  const addHeadingIds = useCallback((el: HTMLDivElement | null) => {
+    if (!el) return;
+    const headings = el.querySelectorAll("h2, h3");
+    const usedIds = new Set<string>();
+    headings.forEach((heading) => {
+      if (heading.id) return;
+      let id = slugify(heading.textContent || "");
+      if (usedIds.has(id)) {
+        let i = 1;
+        while (usedIds.has(`${id}-${i}`)) i++;
+        id = `${id}-${i}`;
+      }
+      usedIds.add(id);
+      heading.id = id;
+    });
   }, []);
 
   // TipTap JSON rendering
@@ -135,14 +165,32 @@ export function PostContent({ content, contentJSON, contentFormat }: PostContent
     return (
       <div
         className="tiptap-content"
-        dangerouslySetInnerHTML={{ __html: tiptapHTML }}
+        ref={(el) => { contentRef.current = el; addHeadingIds(el); }}
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(tiptapHTML, {
+          ADD_TAGS: ["iframe"],
+          ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "src"],
+        }) }}
       />
     );
   }
 
+  // Heading component that auto-generates IDs for TOC linking
+  const createHeading = (level: 2 | 3) => {
+    const HeadingComponent = ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => {
+      const text = typeof children === "string" ? children : String(children);
+      const id = slugify(text);
+      const Tag = `h${level}` as const;
+      return <Tag id={id} {...props}>{children}</Tag>;
+    };
+    HeadingComponent.displayName = `H${level}`;
+    return HeadingComponent;
+  };
+
   // Fallback: Markdown rendering
   const components: Components = mounted
     ? {
+        h2: createHeading(2),
+        h3: createHeading(3),
         pre({ children }) {
           return <>{children}</>;
         },
@@ -165,10 +213,10 @@ export function PostContent({ content, contentJSON, contentFormat }: PostContent
     : {};
 
   return (
-    <div className="markdown-content">
+    <div className="markdown-content" ref={contentRef}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeRaw]}
+        rehypePlugins={[rehypeRaw, rehypeSanitize]}
         components={components}
       >
         {content}

@@ -24,6 +24,7 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 	r.Use(middleware.Logging)
 	r.Use(chimw.Recoverer)
 	r.Use(middleware.CORS(cfg.FrontendURL))
+	r.Use(middleware.SecurityHeaders)
 	r.Use(middleware.GlobalRateLimit(200)) // 200 req/min per IP
 
 	// Repositories
@@ -75,6 +76,7 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 
 	// API v1
 	r.Route("/api/v1", func(r chi.Router) {
+		r.Use(middleware.MaxBodySize(1 << 20)) // 1MB default body limit
 		// Auth (strict rate limit: 10 req/min per IP)
 		r.Route("/auth", func(r chi.Router) {
 			r.Use(middleware.AuthRateLimit())

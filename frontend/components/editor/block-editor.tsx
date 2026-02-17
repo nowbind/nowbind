@@ -1,10 +1,11 @@
 "use client";
 
 import { useRef, useCallback, useState, useEffect } from "react";
-import { EditorRoot, EditorContent, ImageResizer, type JSONContent } from "novel";
+import { EditorRoot, EditorContent, ImageResizer, type JSONContent, type EditorInstance } from "novel";
 import { defaultExtensions } from "./extensions";
 import { EditorBubbleMenu } from "./bubble-menu";
 import { EditorToolbar } from "./editor-toolbar";
+import type { Editor } from "@tiptap/core";
 import {
   Dialog,
   DialogContent,
@@ -57,6 +58,7 @@ export function BlockEditor({
 }: BlockEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<any>(null);
+  const [editorInstance, setEditorInstance] = useState<Editor | null>(null);
 
   // URL prompt modal state
   const [urlPrompt, setUrlPrompt] = useState<UrlPromptType | null>(null);
@@ -128,7 +130,8 @@ export function BlockEditor({
   return (
     <div className="relative w-full">
       <EditorRoot>
-        <EditorToolbar />
+        {editorInstance && <EditorToolbar editor={editorInstance} />}
+        <div className="mt-4" />
         <EditorContent
           extensions={defaultExtensions as any}
           initialContent={initialContent}
@@ -141,6 +144,7 @@ export function BlockEditor({
           }}
           onCreate={({ editor }) => {
             editorRef.current = editor;
+            setEditorInstance(editor as unknown as Editor);
 
             // Listen for image insert events
             const insertHandler = (e: Event) => {

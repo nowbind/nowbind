@@ -1,6 +1,6 @@
 export interface User {
   id: string;
-  email: string;
+  email?: string;
   username: string;
   display_name: string;
   bio: string;
@@ -116,8 +116,10 @@ export interface ReferrerStat {
 
 export interface PostStats {
   post_id: string;
-  total_views: number;
+  view_date: string;
+  view_count: number;
   unique_views: number;
+  ai_view_count: number;
 }
 
 export interface ApiKey {

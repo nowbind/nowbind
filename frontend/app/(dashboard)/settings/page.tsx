@@ -21,12 +21,14 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useMediaUpload } from "@/lib/hooks/use-media-upload";
 import type { NotificationPreferences } from "@/lib/types";
-import { Loader2, Save, Download, Trash2, Upload } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Loader2, Save, Download, Trash2, Upload, Globe, Twitter, Github } from "lucide-react";
 import { API_URL } from "@/lib/constants";
+import { toast } from "sonner";
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, refetch } = useAuth();
   const { uploadMedia, uploading: avatarUploading } = useMediaUpload();
 
   // Profile fields
@@ -47,7 +49,6 @@ export default function SettingsPage() {
 
   // Notification preferences
   const [notifPrefs, setNotifPrefs] = useState<NotificationPreferences | null>(null);
-  const [savingPrefs, setSavingPrefs] = useState(false);
 
   // Delete account
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -88,8 +89,9 @@ export default function SettingsPage() {
         setAvatarUrl(url);
         // Immediately persist to backend so it survives refresh
         await api.put("/users/me", { avatar_url: url });
-      } catch (err) {
-        console.error("Failed to upload avatar:", err);
+        toast.success("Avatar updated");
+      } catch {
+        toast.error("Failed to upload avatar");
       }
     };
     input.click();
@@ -98,38 +100,36 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.put("/users/me", {
-        display_name: displayName,
-        bio,
-        avatar_url: avatarUrl,
-        website,
-        twitter_url: twitterUrl,
-        github_url: githubUrl,
-        meta_title: metaTitle,
-        meta_description: metaDescription,
-      });
+      const promises: Promise<unknown>[] = [
+        api.put("/users/me", {
+          display_name: displayName,
+          bio,
+          avatar_url: avatarUrl,
+          website,
+          twitter_url: twitterUrl,
+          github_url: githubUrl,
+          meta_title: metaTitle,
+          meta_description: metaDescription,
+        }),
+      ];
+      if (notifPrefs) {
+        promises.push(
+          api.put("/notifications/preferences", {
+            new_follower: notifPrefs.new_follower,
+            new_comment: notifPrefs.new_comment,
+            new_like: notifPrefs.new_like,
+          })
+        );
+      }
+      await Promise.all(promises);
+      await refetch();
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-    } catch (err) {
-      console.error("Failed to save:", err);
+      toast.success("Settings saved");
+    } catch {
+      toast.error("Failed to save settings");
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleSavePrefs = async () => {
-    if (!notifPrefs) return;
-    setSavingPrefs(true);
-    try {
-      await api.put("/notifications/preferences", {
-        new_follower: notifPrefs.new_follower,
-        new_comment: notifPrefs.new_comment,
-        new_like: notifPrefs.new_like,
-      });
-    } catch {
-      // ignore
-    } finally {
-      setSavingPrefs(false);
     }
   };
 
@@ -141,10 +141,11 @@ export default function SettingsPage() {
     if (deleteConfirm !== "DELETE") return;
     setDeleting(true);
     try {
-      await api.delete("/users/me");
+      await api.delete("/users/me", { confirm: "DELETE" });
+      toast.success("Account deleted");
       router.push("/");
-    } catch (err) {
-      console.error("Failed to delete account:", err);
+    } catch {
+      toast.error("Failed to delete account");
     } finally {
       setDeleting(false);
       setDeleteDialogOpen(false);
@@ -230,22 +231,40 @@ export default function SettingsPage() {
                 {/* Social links */}
                 <div className="space-y-3">
                   <h3 className="text-sm font-medium">Social Links</h3>
-                  <div className="space-y-2">
-                    <Input
-                      value={website}
-                      onChange={(e) => setWebsite(e.target.value)}
-                      placeholder="https://yourwebsite.com"
-                    />
-                    <Input
-                      value={twitterUrl}
-                      onChange={(e) => setTwitterUrl(e.target.value)}
-                      placeholder="https://x.com/username"
-                    />
-                    <Input
-                      value={githubUrl}
-                      onChange={(e) => setGithubUrl(e.target.value)}
-                      placeholder="https://github.com/username"
-                    />
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Globe className="h-3.5 w-3.5" />
+                        Website
+                      </label>
+                      <Input
+                        value={website}
+                        onChange={(e) => setWebsite(e.target.value)}
+                        placeholder="https://yourwebsite.com"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Twitter className="h-3.5 w-3.5" />
+                        X (Twitter)
+                      </label>
+                      <Input
+                        value={twitterUrl}
+                        onChange={(e) => setTwitterUrl(e.target.value)}
+                        placeholder="https://x.com/username"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Github className="h-3.5 w-3.5" />
+                        GitHub
+                      </label>
+                      <Input
+                        value={githubUrl}
+                        onChange={(e) => setGithubUrl(e.target.value)}
+                        placeholder="https://github.com/username"
+                      />
+                    </div>
                   </div>
                 </div>
               </section>
@@ -285,16 +304,6 @@ export default function SettingsPage() {
                 </div>
               </section>
 
-              {/* Save button for profile + SEO */}
-              <Button onClick={handleSave} disabled={saving}>
-                {saving ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="mr-2 h-4 w-4" />
-                )}
-                {saved ? "Saved!" : "Save Changes"}
-              </Button>
-
               {/* Notification preferences */}
               {notifPrefs && (
                 <section className="space-y-4 border-t pt-6">
@@ -303,42 +312,44 @@ export default function SettingsPage() {
                     Choose which notifications you receive.
                   </p>
 
-                  <div className="space-y-3">
-                    <label className="flex items-center justify-between">
-                      <span className="text-sm">New followers</span>
-                      <input
-                        type="checkbox"
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <label htmlFor="notif-followers" className="text-sm">New followers</label>
+                      <Switch
+                        id="notif-followers"
                         checked={notifPrefs.new_follower}
-                        onChange={(e) => setNotifPrefs({ ...notifPrefs, new_follower: e.target.checked })}
-                        className="h-4 w-4 rounded border-input"
+                        onCheckedChange={(checked) => setNotifPrefs({ ...notifPrefs, new_follower: checked })}
                       />
-                    </label>
-                    <label className="flex items-center justify-between">
-                      <span className="text-sm">New comments</span>
-                      <input
-                        type="checkbox"
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <label htmlFor="notif-comments" className="text-sm">New comments</label>
+                      <Switch
+                        id="notif-comments"
                         checked={notifPrefs.new_comment}
-                        onChange={(e) => setNotifPrefs({ ...notifPrefs, new_comment: e.target.checked })}
-                        className="h-4 w-4 rounded border-input"
+                        onCheckedChange={(checked) => setNotifPrefs({ ...notifPrefs, new_comment: checked })}
                       />
-                    </label>
-                    <label className="flex items-center justify-between">
-                      <span className="text-sm">New likes</span>
-                      <input
-                        type="checkbox"
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <label htmlFor="notif-likes" className="text-sm">New likes</label>
+                      <Switch
+                        id="notif-likes"
                         checked={notifPrefs.new_like}
-                        onChange={(e) => setNotifPrefs({ ...notifPrefs, new_like: e.target.checked })}
-                        className="h-4 w-4 rounded border-input"
+                        onCheckedChange={(checked) => setNotifPrefs({ ...notifPrefs, new_like: checked })}
                       />
-                    </label>
+                    </div>
                   </div>
-
-                  <Button size="sm" onClick={handleSavePrefs} disabled={savingPrefs}>
-                    {savingPrefs ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Save Preferences
-                  </Button>
                 </section>
               )}
+
+              {/* Save button — saves profile, SEO, and notification preferences */}
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
+                {saved ? "Saved!" : "Save Changes"}
+              </Button>
 
               {/* Account section */}
               <section className="space-y-4 border-t pt-6">

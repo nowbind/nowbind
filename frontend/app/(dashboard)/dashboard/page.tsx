@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
@@ -28,6 +30,9 @@ import {
   MoreVertical,
   Star,
   ArrowUpDown,
+  Search,
+  X,
+  CheckSquare,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -52,13 +57,22 @@ export default function DashboardPage() {
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [allTags, setAllTags] = useState<Tag[]>([]);
 
+  // Search
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Bulk actions
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkActing, setBulkActing] = useState(false);
+
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
       router.push("/login");
       return;
     }
-    // Load tags for filter dropdown
     api.get<Tag[]>("/tags").then(setAllTags).catch(() => {});
   }, [user, authLoading, router]);
 
@@ -78,24 +92,142 @@ export default function DashboardPage() {
       .finally(() => setLoading(false));
   }, [user, authLoading, statusFilter, tagFilter, sortBy]);
 
+  // Debounce search
+  useEffect(() => {
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => {
+      if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    };
+  }, [searchQuery]);
+
+  // Clear selection when filters change
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [statusFilter, tagFilter, sortBy, debouncedSearch]);
+
+  const filteredPosts = debouncedSearch
+    ? posts.filter((p) =>
+        p.title.toLowerCase().includes(debouncedSearch.toLowerCase())
+      )
+    : posts;
+
   const handlePublish = async (id: string) => {
-    await api.post(`/posts/${id}/publish`);
-    setPosts(
-      posts.map((p) => (p.id === id ? { ...p, status: "published" } : p))
-    );
+    try {
+      await api.post(`/posts/${id}/publish`);
+      setPosts(
+        posts.map((p) => (p.id === id ? { ...p, status: "published" } : p))
+      );
+      toast.success("Post published");
+    } catch {
+      toast.error("Failed to publish post");
+    }
   };
 
   const handleUnpublish = async (id: string) => {
-    await api.post(`/posts/${id}/unpublish`);
-    setPosts(posts.map((p) => (p.id === id ? { ...p, status: "draft" } : p)));
+    try {
+      await api.post(`/posts/${id}/unpublish`);
+      setPosts(posts.map((p) => (p.id === id ? { ...p, status: "draft" } : p)));
+      toast.success("Post unpublished");
+    } catch {
+      toast.error("Failed to unpublish post");
+    }
   };
 
   const confirmDelete = async () => {
     if (!deleteId) return;
-    await api.delete(`/posts/${deleteId}`);
-    setPosts(posts.filter((p) => p.id !== deleteId));
-    setDeleteId(null);
+    try {
+      await api.delete(`/posts/${deleteId}`);
+      setPosts(posts.filter((p) => p.id !== deleteId));
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(deleteId);
+        return next;
+      });
+      setDeleteId(null);
+      toast.success("Post deleted");
+    } catch {
+      toast.error("Failed to delete post");
+      setDeleteId(null);
+    }
   };
+
+  // Bulk actions
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredPosts.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredPosts.map((p) => p.id)));
+    }
+  };
+
+  const handleBulkPublish = useCallback(async () => {
+    setBulkActing(true);
+    try {
+      await Promise.all(
+        Array.from(selectedIds).map((id) => api.post(`/posts/${id}/publish`))
+      );
+      setPosts((prev) =>
+        prev.map((p) =>
+          selectedIds.has(p.id) ? { ...p, status: "published" as const } : p
+        )
+      );
+      toast.success(`${selectedIds.size} post(s) published`);
+      setSelectedIds(new Set());
+    } catch {
+      toast.error("Failed to publish some posts");
+    } finally {
+      setBulkActing(false);
+    }
+  }, [selectedIds]);
+
+  const handleBulkUnpublish = useCallback(async () => {
+    setBulkActing(true);
+    try {
+      await Promise.all(
+        Array.from(selectedIds).map((id) => api.post(`/posts/${id}/unpublish`))
+      );
+      setPosts((prev) =>
+        prev.map((p) =>
+          selectedIds.has(p.id) ? { ...p, status: "draft" as const } : p
+        )
+      );
+      toast.success(`${selectedIds.size} post(s) unpublished`);
+      setSelectedIds(new Set());
+    } catch {
+      toast.error("Failed to unpublish some posts");
+    } finally {
+      setBulkActing(false);
+    }
+  }, [selectedIds]);
+
+  const handleBulkDelete = useCallback(async () => {
+    setBulkActing(true);
+    try {
+      await Promise.all(
+        Array.from(selectedIds).map((id) => api.delete(`/posts/${id}`))
+      );
+      setPosts((prev) => prev.filter((p) => !selectedIds.has(p.id)));
+      toast.success(`${selectedIds.size} post(s) deleted`);
+      setSelectedIds(new Set());
+    } catch {
+      toast.error("Failed to delete some posts");
+    } finally {
+      setBulkActing(false);
+      setBulkDeleteOpen(false);
+    }
+  }, [selectedIds]);
 
   const statusTabs: { label: string; value: StatusFilter }[] = [
     { label: "All", value: "" },
@@ -122,6 +254,25 @@ export default function DashboardPage() {
                 New Post
               </Link>
             </Button>
+          </div>
+
+          {/* Search */}
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search posts by title..."
+              className="pl-9 pr-9"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
 
           {/* Filter bar */}
@@ -191,26 +342,66 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
-          ) : posts.length === 0 ? (
+          ) : filteredPosts.length === 0 ? (
             <div className="rounded-lg border p-12 text-center">
-              <PenSquare className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-              <h2 className="mb-1 font-semibold">No posts yet</h2>
-              <p className="mb-4 text-sm text-muted-foreground">
-                {statusFilter
-                  ? `No ${statusFilter} posts found.`
-                  : "Write your first post and share it with the world."}
-              </p>
-              <Button asChild>
-                <Link href="/editor">Create Post</Link>
-              </Button>
+              {debouncedSearch ? (
+                <>
+                  <Search className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+                  <h2 className="mb-1 font-semibold">No matches</h2>
+                  <p className="mb-4 text-sm text-muted-foreground">
+                    No posts match &ldquo;{debouncedSearch}&rdquo;
+                  </p>
+                  <Button variant="outline" onClick={() => setSearchQuery("")}>
+                    Clear search
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <PenSquare className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+                  <h2 className="mb-1 font-semibold">No posts yet</h2>
+                  <p className="mb-4 text-sm text-muted-foreground">
+                    {statusFilter
+                      ? `No ${statusFilter} posts found.`
+                      : "Write your first post and share it with the world."}
+                  </p>
+                  <Button asChild>
+                    <Link href="/editor">Create Post</Link>
+                  </Button>
+                </>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
-              {posts.map((post) => (
+              {/* Select all header */}
+              <div className="flex items-center gap-3 px-4 py-1">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.size === filteredPosts.length && filteredPosts.length > 0}
+                  onChange={toggleSelectAll}
+                  className="h-4 w-4 rounded border-input accent-primary"
+                />
+                <span className="text-xs text-muted-foreground">
+                  {selectedIds.size > 0
+                    ? `${selectedIds.size} selected`
+                    : "Select all"}
+                </span>
+              </div>
+
+              {filteredPosts.map((post) => (
                 <div
                   key={post.id}
-                  className="flex items-center gap-3 rounded-lg border p-4"
+                  className={`flex items-center gap-3 rounded-lg border p-4 ${
+                    selectedIds.has(post.id) ? "border-primary/50 bg-primary/5" : ""
+                  }`}
                 >
+                  {/* Checkbox */}
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(post.id)}
+                    onChange={() => toggleSelect(post.id)}
+                    className="h-4 w-4 shrink-0 rounded border-input accent-primary"
+                  />
+
                   {/* Feature image thumbnail */}
                   {post.feature_image && (
                     <img
@@ -292,6 +483,35 @@ export default function DashboardPage() {
       </main>
       <Footer />
 
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
+          <div className="flex items-center gap-2 rounded-xl border bg-background px-4 py-2.5 shadow-lg">
+            <CheckSquare className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">{selectedIds.size} selected</span>
+            <div className="mx-2 h-5 w-px bg-border" />
+            <Button size="sm" variant="outline" onClick={handleBulkPublish} disabled={bulkActing}>
+              <Eye className="mr-1.5 h-3.5 w-3.5" />
+              Publish
+            </Button>
+            <Button size="sm" variant="outline" onClick={handleBulkUnpublish} disabled={bulkActing}>
+              <EyeOff className="mr-1.5 h-3.5 w-3.5" />
+              Unpublish
+            </Button>
+            <Button size="sm" variant="destructive" onClick={() => setBulkDeleteOpen(true)} disabled={bulkActing}>
+              <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+              Delete
+            </Button>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="ml-1 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Delete confirmation dialog */}
       <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <DialogContent>
@@ -307,6 +527,26 @@ export default function DashboardPage() {
             </Button>
             <Button variant="destructive" onClick={confirmDelete}>
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk delete confirmation dialog */}
+      <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete {selectedIds.size} Posts</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {selectedIds.size} post{selectedIds.size > 1 ? "s" : ""}? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkDeleteOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleBulkDelete} disabled={bulkActing}>
+              Delete {selectedIds.size} Post{selectedIds.size > 1 ? "s" : ""}
             </Button>
           </DialogFooter>
         </DialogContent>

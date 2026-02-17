@@ -1,16 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
 import { BlockEditor } from "@/components/editor/block-editor";
 import { PostSettingsPanel } from "@/components/editor/post-settings-panel";
+import { PostContent } from "@/components/post/post-content";
 import { useMediaUpload } from "@/lib/hooks/use-media-upload";
+import { useAutosave } from "@/lib/hooks/use-autosave";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/hooks/use-auth";
 import type { JSONContent } from "novel";
-import { Save, Send, Settings, Loader2, X, Upload, Image as ImageIcon } from "lucide-react";
+import {
+  Save,
+  Send,
+  Settings,
+  Loader2,
+  X,
+  Upload,
+  Image as ImageIcon,
+  Eye,
+  PenLine,
+} from "lucide-react";
+import { toast } from "sonner";
 
 export default function EditorPage() {
   const router = useRouter();
@@ -35,6 +48,70 @@ export default function EditorPage() {
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
+
+  // Track the auto-created draft post ID
+  const draftIdRef = useRef<string | null>(null);
+  const draftSlugRef = useRef<string | null>(null);
+
+  // Refs for autosave to capture latest values
+  const titleRef = useRef(title);
+  titleRef.current = title;
+  const subtitleRef = useRef(subtitle);
+  subtitleRef.current = subtitle;
+  const contentJSONRef = useRef(contentJSON);
+  contentJSONRef.current = contentJSON;
+  const excerptRef = useRef(excerpt);
+  excerptRef.current = excerpt;
+  const tagsRef = useRef(tags);
+  tagsRef.current = tags;
+  const slugRef = useRef(slug);
+  slugRef.current = slug;
+  const featuredRef = useRef(featured);
+  featuredRef.current = featured;
+  const featureImageRef = useRef(featureImage);
+  featureImageRef.current = featureImage;
+
+  const performSave = useCallback(async () => {
+    if (!titleRef.current.trim()) return false;
+
+    const payload = {
+      title: titleRef.current,
+      subtitle: subtitleRef.current,
+      content_json: contentJSONRef.current
+        ? JSON.stringify(contentJSONRef.current)
+        : undefined,
+      excerpt: excerptRef.current,
+      tags: tagsRef.current,
+      slug: slugRef.current || undefined,
+      featured: featuredRef.current,
+      feature_image: featureImageRef.current || undefined,
+    };
+
+    try {
+      if (draftIdRef.current) {
+        // Update existing draft
+        await api.put(`/posts/${draftIdRef.current}`, payload);
+      } else {
+        // Create new draft
+        const post = await api.post<{ id: string; slug: string }>(
+          "/posts",
+          payload
+        );
+        draftIdRef.current = post.id;
+        draftSlugRef.current = post.slug;
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const { status: autosaveStatus, statusLabel, markDirty, markClean } =
+    useAutosave({
+      interval: 30_000,
+      onSave: performSave,
+    });
 
   const handleFeatureImageUpload = async () => {
     const input = document.createElement("input");
@@ -46,6 +123,7 @@ export default function EditorPage() {
       try {
         const url = await uploadMedia(file);
         setFeatureImage(url);
+        markDirty();
       } catch (err) {
         console.error("Failed to upload feature image:", err);
       }
@@ -57,19 +135,35 @@ export default function EditorPage() {
     if (!title.trim()) return;
     setSaving(true);
     try {
-      const post = await api.post<{ slug: string }>("/posts", {
-        title,
-        subtitle,
-        content_json: contentJSON ? JSON.stringify(contentJSON) : undefined,
-        excerpt,
-        tags,
-        slug: slug || undefined,
-        featured,
-        feature_image: featureImage || undefined,
-      });
-      router.push(`/post/${post.slug}`);
-    } catch (err) {
-      console.error("Failed to save:", err);
+      if (draftIdRef.current) {
+        await api.put(`/posts/${draftIdRef.current}`, {
+          title,
+          subtitle,
+          content_json: contentJSON ? JSON.stringify(contentJSON) : undefined,
+          excerpt,
+          tags,
+          slug: slug || undefined,
+          featured,
+          feature_image: featureImage || undefined,
+        });
+        markClean();
+        router.push(`/post/${draftSlugRef.current || slug}`);
+      } else {
+        const post = await api.post<{ slug: string }>("/posts", {
+          title,
+          subtitle,
+          content_json: contentJSON ? JSON.stringify(contentJSON) : undefined,
+          excerpt,
+          tags,
+          slug: slug || undefined,
+          featured,
+          feature_image: featureImage || undefined,
+        });
+        markClean();
+        router.push(`/post/${post.slug}`);
+      }
+    } catch {
+      toast.error("Failed to save draft");
     } finally {
       setSaving(false);
     }
@@ -79,20 +173,41 @@ export default function EditorPage() {
     if (!title.trim()) return;
     setPublishing(true);
     try {
-      const post = await api.post<{ id: string; slug: string }>("/posts", {
-        title,
-        subtitle,
-        content_json: contentJSON ? JSON.stringify(contentJSON) : undefined,
-        excerpt,
-        tags,
-        slug: slug || undefined,
-        featured,
-        feature_image: featureImage || undefined,
-      });
-      await api.post(`/posts/${post.id}/publish`);
-      router.push(`/post/${post.slug}`);
-    } catch (err) {
-      console.error("Failed to publish:", err);
+      let postId: string;
+      let postSlug: string;
+
+      if (draftIdRef.current) {
+        await api.put(`/posts/${draftIdRef.current}`, {
+          title,
+          subtitle,
+          content_json: contentJSON ? JSON.stringify(contentJSON) : undefined,
+          excerpt,
+          tags,
+          slug: slug || undefined,
+          featured,
+          feature_image: featureImage || undefined,
+        });
+        postId = draftIdRef.current;
+        postSlug = draftSlugRef.current || slug;
+      } else {
+        const post = await api.post<{ id: string; slug: string }>("/posts", {
+          title,
+          subtitle,
+          content_json: contentJSON ? JSON.stringify(contentJSON) : undefined,
+          excerpt,
+          tags,
+          slug: slug || undefined,
+          featured,
+          feature_image: featureImage || undefined,
+        });
+        postId = post.id;
+        postSlug = post.slug;
+      }
+      await api.post(`/posts/${postId}/publish`);
+      markClean();
+      router.push(`/post/${postSlug}`);
+    } catch {
+      toast.error("Failed to publish");
     } finally {
       setPublishing(false);
     }
@@ -105,8 +220,40 @@ export default function EditorPage() {
         <div className="mx-auto max-w-5xl px-4 py-6">
           {/* Toolbar */}
           <div className="mb-6 flex items-center justify-between">
-            <h1 className="text-lg font-semibold">New Post</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-lg font-semibold">New Post</h1>
+              {statusLabel && (
+                <span
+                  className={`text-xs ${
+                    autosaveStatus === "saving"
+                      ? "text-muted-foreground"
+                      : autosaveStatus === "unsaved"
+                        ? "text-amber-500"
+                        : "text-green-600 dark:text-green-400"
+                  }`}
+                >
+                  {statusLabel}
+                </span>
+              )}
+            </div>
             <div className="flex gap-2">
+              <Button
+                variant={previewMode ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setPreviewMode(!previewMode)}
+              >
+                {previewMode ? (
+                  <>
+                    <PenLine className="mr-2 h-4 w-4" />
+                    Edit
+                  </>
+                ) : (
+                  <>
+                    <Eye className="mr-2 h-4 w-4" />
+                    Preview
+                  </>
+                )}
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -143,79 +290,125 @@ export default function EditorPage() {
             </div>
           </div>
 
-          {/* Feature Image */}
-          {featureImage ? (
-            <div className="relative mb-6">
-              <img
-                src={featureImage}
-                alt="Feature"
-                className="h-64 w-full rounded-lg border object-cover"
-              />
-              <div className="absolute top-3 right-3 flex gap-1.5">
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  className="h-8 w-8 bg-background/80 backdrop-blur-sm"
-                  onClick={handleFeatureImageUpload}
-                  disabled={featureUploading}
-                >
-                  {featureUploading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Upload className="h-4 w-4" />
-                  )}
-                </Button>
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  className="h-8 w-8 bg-background/80 backdrop-blur-sm"
-                  onClick={() => setFeatureImage("")}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={handleFeatureImageUpload}
-              disabled={featureUploading}
-              className="mb-6 flex h-16 w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed text-sm text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground/70"
-            >
-              {featureUploading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  <ImageIcon className="h-4 w-4" />
-                  Add feature image
-                </>
+          {/* ---- Preview Mode (overlay, editor stays mounted) ---- */}
+          {previewMode && (
+            <article className="prose dark:prose-invert mx-auto max-w-3xl">
+              {featureImage && (
+                <img
+                  src={featureImage}
+                  alt="Feature"
+                  className="mb-6 w-full max-h-96 rounded-lg object-cover"
+                />
               )}
-            </button>
+              <h1 className="text-4xl font-bold">
+                {title || "Untitled Post"}
+              </h1>
+              {subtitle && (
+                <p className="text-xl text-muted-foreground">{subtitle}</p>
+              )}
+              <hr className="my-6" />
+              {contentJSON ? (
+                <PostContent
+                  content=""
+                  contentJSON={JSON.stringify(contentJSON)}
+                  contentFormat="tiptap"
+                />
+              ) : (
+                <p className="text-muted-foreground italic">
+                  No content yet. Start writing to see the preview.
+                </p>
+              )}
+            </article>
           )}
 
-          {/* Title & Subtitle — Ghost-style borderless */}
-          <div className="mb-2">
-            <input
-              placeholder="Post title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-transparent text-4xl font-bold text-foreground placeholder:text-muted-foreground/50 outline-none"
-            />
-          </div>
-          <div className="mb-6">
-            <input
-              placeholder="Add a subtitle..."
-              value={subtitle}
-              onChange={(e) => setSubtitle(e.target.value)}
-              className="w-full bg-transparent text-xl text-foreground/70 placeholder:text-muted-foreground/40 outline-none"
-            />
-          </div>
+          {/* ---- Edit Mode (always mounted, hidden when previewing) ---- */}
+          <div className={previewMode ? "hidden" : ""}>
+            {/* Feature Image */}
+            {featureImage ? (
+              <div className="relative mb-6">
+                <img
+                  src={featureImage}
+                  alt="Feature"
+                  className="w-full max-h-96 rounded-lg border object-cover"
+                />
+                <div className="absolute top-3 right-3 flex gap-1.5">
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="h-8 w-8 bg-background/80 backdrop-blur-sm"
+                    onClick={handleFeatureImageUpload}
+                    disabled={featureUploading}
+                  >
+                    {featureUploading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="h-8 w-8 bg-background/80 backdrop-blur-sm"
+                    onClick={() => {
+                      setFeatureImage("");
+                      markDirty();
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleFeatureImageUpload}
+                disabled={featureUploading}
+                className="mb-6 flex h-16 w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed text-sm text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground/70"
+              >
+                {featureUploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <ImageIcon className="h-4 w-4" />
+                    Add feature image
+                  </>
+                )}
+              </button>
+            )}
 
-          {/* Block Editor */}
-          <BlockEditor
-            onChange={setContentJSON}
-            onImageUpload={uploadMedia}
-          />
+            {/* Title & Subtitle */}
+            <div className="mb-2">
+              <input
+                placeholder="Post title"
+                value={title}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  markDirty();
+                }}
+                className="w-full bg-transparent text-4xl font-bold text-foreground placeholder:text-muted-foreground/50 outline-none"
+              />
+            </div>
+            <div className="mb-6">
+              <input
+                placeholder="Add a subtitle..."
+                value={subtitle}
+                onChange={(e) => {
+                  setSubtitle(e.target.value);
+                  markDirty();
+                }}
+                className="w-full bg-transparent text-xl text-foreground/70 placeholder:text-muted-foreground/40 outline-none"
+              />
+            </div>
+
+            {/* Block Editor */}
+            <BlockEditor
+              onChange={(json) => {
+                setContentJSON(json);
+                markDirty();
+              }}
+              onImageUpload={uploadMedia}
+            />
+          </div>
         </div>
       </main>
 
@@ -224,15 +417,30 @@ export default function EditorPage() {
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
         slug={slug}
-        onSlugChange={setSlug}
+        onSlugChange={(v) => {
+          setSlug(v);
+          markDirty();
+        }}
         tags={tags}
-        onTagsChange={setTags}
+        onTagsChange={(v) => {
+          setTags(v);
+          markDirty();
+        }}
         excerpt={excerpt}
-        onExcerptChange={setExcerpt}
+        onExcerptChange={(v) => {
+          setExcerpt(v);
+          markDirty();
+        }}
         featured={featured}
-        onFeaturedChange={setFeatured}
+        onFeaturedChange={(v) => {
+          setFeatured(v);
+          markDirty();
+        }}
         featureImage={featureImage}
-        onFeatureImageChange={setFeatureImage}
+        onFeatureImageChange={(v) => {
+          setFeatureImage(v);
+          markDirty();
+        }}
       />
     </div>
   );

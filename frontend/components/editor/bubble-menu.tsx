@@ -127,6 +127,7 @@ export function EditorBubbleMenu() {
             <div className="relative">
               <button
                 type="button"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => setShowFontMenu(!showFontMenu)}
                 className="flex items-center gap-0.5 rounded-md px-1.5 py-1.5 text-xs transition-colors hover:bg-accent"
               >
@@ -146,6 +147,7 @@ export function EditorBubbleMenu() {
                     <button
                       key={size.label}
                       type="button"
+                      onMouseDown={(e) => e.preventDefault()}
                       className={cn(
                         "flex w-full items-center rounded-md px-2 py-1 text-sm hover:bg-accent",
                         !size.value &&
@@ -183,6 +185,7 @@ export function EditorBubbleMenu() {
               <button
                 key={item.name}
                 type="button"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={item.command}
                 className={cn(
                   "rounded-md p-1.5 transition-colors hover:bg-accent",
@@ -203,6 +206,7 @@ export function EditorBubbleMenu() {
               <button
                 key={align}
                 type="button"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() =>
                   (editor.chain().focus() as any).setImageAlign(align).run()
                 }
@@ -228,6 +232,7 @@ export function EditorBubbleMenu() {
               <button
                 key={size.value}
                 type="button"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() =>
                   (editor.chain().focus() as any)
                     .setYoutubeWidth(size.value)

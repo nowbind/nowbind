@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { API_URL } from "@/lib/constants";
+import { toast } from "sonner";
 
 interface UploadResult {
   url: string;
@@ -26,11 +27,18 @@ export function useMediaUpload() {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Upload failed");
+        const message = err.error || "Upload failed";
+        toast.error(message);
+        throw new Error(message);
       }
 
       const data: UploadResult = await res.json();
       return data.url;
+    } catch (err) {
+      if (err instanceof Error && !err.message.includes("Upload failed") && !err.message.includes("unsupported")) {
+        toast.error("Upload failed. Please try again.");
+      }
+      throw err;
     } finally {
       setUploading(false);
     }

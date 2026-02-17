@@ -16,6 +16,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nowbind/nowbind/internal/config"
 	"github.com/nowbind/nowbind/internal/middleware"
+	"github.com/nowbind/nowbind/internal/model"
 	"github.com/nowbind/nowbind/internal/repository"
 	"github.com/nowbind/nowbind/internal/service"
 )
@@ -252,7 +253,13 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, user)
+	// Include email only for the authenticated user's own profile
+	resp := struct {
+		*model.User
+		Email string `json:"email"`
+	}{User: user, Email: user.Email}
+
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (h *AuthHandler) setAuthCookies(w http.ResponseWriter, accessToken, refreshToken string, refreshExpiry time.Time) {

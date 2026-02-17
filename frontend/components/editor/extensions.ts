@@ -14,6 +14,7 @@ import tippy, { type Instance as TippyInstance } from "tippy.js";
 import HorizontalRule from "@tiptap/extension-horizontal-rule";
 import Placeholder from "@tiptap/extension-placeholder";
 import { common, createLowlight } from "lowlight";
+import { Markdown } from "tiptap-markdown";
 import { Callout } from "./extensions/callout";
 import { Bookmark } from "./extensions/bookmark";
 import { SlashCommandList, commandGroups } from "./slash-command-list";
@@ -274,4 +275,9 @@ export const defaultExtensions = [
   YoutubeResize,
   Callout,
   Bookmark,
+  Markdown.configure({
+    html: true,
+    transformPastedText: true,
+    transformCopiedText: true,
+  }),
 ];

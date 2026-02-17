@@ -9,6 +9,8 @@ import { RelatedPosts } from "@/components/post/related-posts";
 import { ViewTracker } from "@/components/post/view-tracker";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
+import { ReadingProgress } from "@/components/layout/reading-progress";
+import { TableOfContents } from "@/components/post/table-of-contents";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -74,16 +76,30 @@ export default async function PostPage({ params }: Props) {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <ReadingProgress />
       <Navbar />
       <main className="flex-1">
-        <article className="mx-auto max-w-3xl px-4 py-8">
-          <PostHeader post={post} />
-          <PostContent
-            content={post.content}
-            contentJSON={post.content_json}
-            contentFormat={post.content_format}
-          />
-        </article>
+        <div className="mx-auto max-w-7xl px-4 py-8 lg:grid lg:grid-cols-[1fr_minmax(0,48rem)_1fr] lg:gap-8">
+          {/* Left spacer on desktop */}
+          <div className="hidden lg:block" />
+
+          {/* Main article column */}
+          <div>
+            <article>
+              <PostHeader post={post} />
+              {/* Mobile TOC (hidden on desktop) */}
+              <TableOfContents variant="mobile" />
+              <PostContent
+                content={post.content}
+                contentJSON={post.content_json}
+                contentFormat={post.content_format}
+              />
+            </article>
+          </div>
+
+          {/* Desktop TOC sidebar (hidden on mobile) */}
+          <TableOfContents variant="desktop" />
+        </div>
 
         <div className="mx-auto max-w-3xl space-y-12 px-4 pb-12">
           <CommentSection postId={post.id} initialCount={post.comment_count} />

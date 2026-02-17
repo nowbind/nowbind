@@ -47,11 +47,11 @@ export function PostHeader({ post }: PostHeaderProps) {
     <header className="mb-8 space-y-4">
       {/* Feature image hero */}
       {post.feature_image && (
-        <div className="-mx-4 mb-6 md:-mx-8">
+        <div className="mb-6">
           <img
             src={post.feature_image}
             alt=""
-            className="h-64 w-full object-cover md:h-96 md:rounded-lg"
+            className="w-full max-h-[28rem] rounded-lg object-cover"
           />
         </div>
       )}

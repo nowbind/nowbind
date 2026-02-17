@@ -108,28 +108,56 @@ func (h *UserHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
 		MetaTitle       *string `json:"meta_title"`
 		MetaDescription *string `json:"meta_description"`
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB limit
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	if dn := strings.TrimSpace(input.DisplayName); dn != "" {
+		if len(dn) > 100 {
+			writeError(w, http.StatusBadRequest, "display name too long (max 100 characters)")
+			return
+		}
 		user.DisplayName = dn
 	}
 	if b := strings.TrimSpace(input.Bio); b != "" {
+		if len(b) > 500 {
+			writeError(w, http.StatusBadRequest, "bio too long (max 500 characters)")
+			return
+		}
 		user.Bio = b
 	}
 	if input.AvatarURL != "" {
+		if len(input.AvatarURL) > 500 {
+			writeError(w, http.StatusBadRequest, "avatar URL too long (max 500 characters)")
+			return
+		}
 		user.AvatarURL = input.AvatarURL
 	}
 	if input.Website != nil {
-		user.Website = strings.TrimSpace(*input.Website)
+		v := strings.TrimSpace(*input.Website)
+		if len(v) > 500 {
+			writeError(w, http.StatusBadRequest, "website URL too long (max 500 characters)")
+			return
+		}
+		user.Website = v
 	}
 	if input.TwitterURL != nil {
-		user.TwitterURL = strings.TrimSpace(*input.TwitterURL)
+		v := strings.TrimSpace(*input.TwitterURL)
+		if len(v) > 500 {
+			writeError(w, http.StatusBadRequest, "Twitter URL too long (max 500 characters)")
+			return
+		}
+		user.TwitterURL = v
 	}
 	if input.GitHubURL != nil {
-		user.GitHubURL = strings.TrimSpace(*input.GitHubURL)
+		v := strings.TrimSpace(*input.GitHubURL)
+		if len(v) > 500 {
+			writeError(w, http.StatusBadRequest, "GitHub URL too long (max 500 characters)")
+			return
+		}
+		user.GitHubURL = v
 	}
 	if input.MetaTitle != nil {
 		user.MetaTitle = strings.TrimSpace(*input.MetaTitle)

@@ -244,6 +244,8 @@
 }
 
 .markdown-content pre {
+  background-color: var(--muted);
+  padding: 1rem;
   margin-bottom: 1rem;
   overflow-x: auto;
   border-radius: 0.5rem;
@@ -324,7 +326,7 @@
 .tiptap-content ol { list-style-type: decimal; }
 .tiptap-content li { margin-bottom: 0.25rem; color: var(--foreground); line-height: 1.5; }
 .tiptap-content code { background-color: var(--muted); color: var(--foreground); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.875rem; font-family: var(--font-mono); }
-.tiptap-content pre { margin-bottom: 1rem; overflow-x: auto; border-radius: 0.5rem; }
+.tiptap-content pre { background-color: var(--muted); padding: 1rem; margin-bottom: 1rem; overflow-x: auto; border-radius: 0.5rem; }
 .tiptap-content pre code { background-color: transparent; padding: 0; }
 .tiptap-content blockquote { border-left: 4px solid var(--border); padding-left: 1rem; font-style: italic; margin: 1rem 0; color: var(--muted-foreground); }
 .tiptap-content a { color: var(--foreground); text-decoration: underline; text-underline-offset: 4px; }

@@ -262,7 +262,7 @@ func generateSummary(content, excerpt string) string {
 
 func extractKeywords(title, content string) []string {
 	words := strings.Fields(strings.ToLower(title))
-	var keywords []string
+	keywords := []string{}
 	seen := make(map[string]bool)
 	for _, w := range words {
 		w = strings.Trim(w, ".,!?;:\"'()[]{}–—")

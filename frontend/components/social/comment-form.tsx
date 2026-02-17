@@ -50,20 +50,28 @@ export function CommentForm({
     <form onSubmit={handleSubmit} className="space-y-3">
       <Textarea
         value={content}
-        onChange={(e) => setContent(e.target.value)}
+        onChange={(e) => setContent(e.target.value.slice(0, 10000))}
         placeholder={placeholder}
         rows={3}
         className="min-h-20 resize-none"
+        maxLength={10000}
       />
       {error && <p className="text-sm text-destructive">{error}</p>}
-      <div className="flex items-center gap-2">
-        <Button type="submit" size="sm" disabled={submitting || !content.trim()}>
-          {submitLabel}
-        </Button>
-        {onCancel && (
-          <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
-            Cancel
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Button type="submit" size="sm" disabled={submitting || !content.trim()}>
+            {submitLabel}
           </Button>
+          {onCancel && (
+            <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+              Cancel
+            </Button>
+          )}
+        </div>
+        {content.length > 0 && (
+          <span className="text-xs text-muted-foreground">
+            {content.length} / 10,000
+          </span>
         )}
       </div>
     </form>

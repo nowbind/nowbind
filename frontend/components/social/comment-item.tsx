@@ -4,36 +4,53 @@ import { useState } from "react";
 import Link from "next/link";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { CommentForm } from "./comment-form";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { api } from "@/lib/api";
+import { toast } from "sonner";
 import { MessageSquare, Pencil, Trash2 } from "lucide-react";
 import type { Comment } from "@/lib/types";
 
+const MAX_NESTING_DEPTH = 3;
+
 interface CommentItemProps {
   comment: Comment;
+  depth?: number;
   onReply: (parentId: string, content: string) => Promise<void>;
   onUpdate: (id: string, content: string) => void;
   onDelete: (id: string) => void;
 }
 
-export function CommentItem({ comment, onReply, onUpdate, onDelete }: CommentItemProps) {
+export function CommentItem({ comment, depth = 0, onReply, onUpdate, onDelete }: CommentItemProps) {
   const { user } = useAuth();
   const [showReply, setShowReply] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
   const isOwner = user?.id === comment.author_id;
 
   const timeAgo = formatTimeAgo(comment.created_at);
 
   const handleEdit = async () => {
     if (!editContent.trim()) return;
+    setEditSaving(true);
     try {
       await api.put(`/comments/${comment.id}`, { content: editContent.trim() });
       onUpdate(comment.id, editContent.trim());
       setEditing(false);
     } catch {
-      // ignore
+      toast.error("Failed to update comment");
+    } finally {
+      setEditSaving(false);
     }
   };
 
@@ -41,10 +58,14 @@ export function CommentItem({ comment, onReply, onUpdate, onDelete }: CommentIte
     try {
       await api.delete(`/comments/${comment.id}`);
       onDelete(comment.id);
+      setDeleteDialogOpen(false);
     } catch {
-      // ignore
+      toast.error("Failed to delete comment");
     }
   };
+
+  // Determine if replies should be visually nested or flattened
+  const shouldNest = depth < MAX_NESTING_DEPTH;
 
   return (
     <div className="space-y-3">
@@ -71,6 +92,13 @@ export function CommentItem({ comment, onReply, onUpdate, onDelete }: CommentIte
             <span className="text-xs text-muted-foreground">{timeAgo}</span>
           </div>
 
+          {/* Show "replying to" when flattened beyond max depth */}
+          {depth >= MAX_NESTING_DEPTH && comment.parent_id && (
+            <p className="text-xs text-muted-foreground">
+              replying to @{(comment as Comment & { parent_author_username?: string }).parent_author_username || "someone"}
+            </p>
+          )}
+
           {editing ? (
             <div className="space-y-2">
               <textarea
@@ -78,12 +106,20 @@ export function CommentItem({ comment, onReply, onUpdate, onDelete }: CommentIte
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
                 rows={3}
+                maxLength={10000}
               />
-              <div className="flex gap-2">
-                <Button size="xs" onClick={handleEdit}>Save</Button>
-                <Button size="xs" variant="ghost" onClick={() => { setEditing(false); setEditContent(comment.content); }}>
-                  Cancel
-                </Button>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">
+                  {editContent.length} / 10,000
+                </span>
+                <div className="flex gap-2">
+                  <Button size="xs" onClick={handleEdit} disabled={editSaving}>
+                    {editSaving ? "Saving..." : "Save"}
+                  </Button>
+                  <Button size="xs" variant="ghost" onClick={() => { setEditing(false); setEditContent(comment.content); }}>
+                    Cancel
+                  </Button>
+                </div>
               </div>
             </div>
           ) : (
@@ -117,7 +153,7 @@ export function CommentItem({ comment, onReply, onUpdate, onDelete }: CommentIte
                     variant="ghost"
                     size="xs"
                     className="text-muted-foreground hover:text-destructive"
-                    onClick={handleDelete}
+                    onClick={() => setDeleteDialogOpen(true)}
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
@@ -143,11 +179,12 @@ export function CommentItem({ comment, onReply, onUpdate, onDelete }: CommentIte
       </div>
 
       {comment.replies && comment.replies.length > 0 && (
-        <div className="ml-10 space-y-3 border-l pl-4">
+        <div className={shouldNest ? "ml-10 space-y-3 border-l pl-4" : "space-y-3"}>
           {comment.replies.map((reply) => (
             <CommentItem
               key={reply.id}
               comment={reply}
+              depth={shouldNest ? depth + 1 : depth}
               onReply={onReply}
               onUpdate={onUpdate}
               onDelete={onDelete}
@@ -155,6 +192,26 @@ export function CommentItem({ comment, onReply, onUpdate, onDelete }: CommentIte
           ))}
         </div>
       )}
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Comment</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this comment? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

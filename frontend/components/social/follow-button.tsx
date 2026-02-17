@@ -7,16 +7,20 @@ import { UserPlus, UserCheck } from "lucide-react";
 interface FollowButtonProps {
   username: string;
   initialFollowing?: boolean;
+  onToggle?: (nowFollowing: boolean) => void;
 }
 
-export function FollowButton({ username, initialFollowing = false }: FollowButtonProps) {
+export function FollowButton({ username, initialFollowing = false, onToggle }: FollowButtonProps) {
   const { isFollowing, toggle, loading } = useFollow(initialFollowing);
 
   return (
     <Button
       variant={isFollowing ? "outline" : "default"}
       size="sm"
-      onClick={() => toggle(username)}
+      onClick={async () => {
+        await toggle(username);
+        onToggle?.(!isFollowing);
+      }}
       disabled={loading}
     >
       {isFollowing ? (
