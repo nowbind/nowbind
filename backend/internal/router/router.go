@@ -129,6 +129,8 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 				r.Use(middleware.AuthMiddleware(cfg.JWTSecret, pool))
 				r.Put("/me", userH.UpdateMe)
 				r.Get("/me/posts", userH.MyPosts)
+				r.Get("/me/export", userH.ExportData)
+				r.Delete("/me", userH.DeleteAccount)
 				r.Get("/me/liked", socialH.GetLikedPosts)
 				r.Get("/me/bookmarks", socialH.GetBookmarks)
 				r.Post("/{username}/follow", socialH.Follow)

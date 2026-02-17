@@ -45,6 +45,17 @@ export function PostHeader({ post }: PostHeaderProps) {
 
   return (
     <header className="mb-8 space-y-4">
+      {/* Feature image hero */}
+      {post.feature_image && (
+        <div className="-mx-4 mb-6 md:-mx-8">
+          <img
+            src={post.feature_image}
+            alt=""
+            className="h-64 w-full object-cover md:h-96 md:rounded-lg"
+          />
+        </div>
+      )}
+
       <h1 className="text-3xl font-extrabold tracking-tight text-foreground md:text-4xl">
         {post.title}
       </h1>

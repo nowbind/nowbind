@@ -61,6 +61,7 @@ export function BlockEditor({
   // URL prompt modal state
   const [urlPrompt, setUrlPrompt] = useState<UrlPromptType | null>(null);
   const [urlValue, setUrlValue] = useState("");
+  const [wordCount, setWordCount] = useState(0);
 
   const handleImageUpload = useCallback(() => {
     fileInputRef.current?.click();
@@ -134,6 +135,9 @@ export function BlockEditor({
           className="prose-editor min-h-[500px]"
           onUpdate={({ editor }) => {
             onChange?.(editor.getJSON());
+            const text = editor.getText();
+            const words = text.trim().split(/\s+/).filter(Boolean).length;
+            setWordCount(words);
           }}
           onCreate={({ editor }) => {
             editorRef.current = editor;
@@ -212,6 +216,13 @@ export function BlockEditor({
           <ImageResizer />
         </EditorContent>
       </EditorRoot>
+
+      {/* Word count */}
+      <div className="pointer-events-none sticky bottom-4 flex justify-end pr-2 pt-2">
+        <span className="pointer-events-auto rounded-md bg-muted/80 px-2.5 py-1 text-xs text-muted-foreground backdrop-blur-sm">
+          {wordCount} {wordCount === 1 ? "word" : "words"} · {Math.max(1, Math.ceil(wordCount / 200))} min read
+        </span>
+      </div>
 
       <input
         ref={fileInputRef}

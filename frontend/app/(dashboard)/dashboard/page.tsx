@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/hooks/use-auth";
-import type { Post, PaginatedResponse } from "@/lib/types";
+import type { Post, Tag, PaginatedResponse } from "@/lib/types";
 import {
   PenSquare,
   Edit3,
@@ -26,6 +26,8 @@ import {
   Eye,
   EyeOff,
   MoreVertical,
+  Star,
+  ArrowUpDown,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -34,6 +36,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+type StatusFilter = "" | "draft" | "published";
+type SortOption = "newest" | "oldest" | "updated";
+
 export default function DashboardPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
@@ -41,18 +46,37 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+  // Filters
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("");
+  const [tagFilter, setTagFilter] = useState("");
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [allTags, setAllTags] = useState<Tag[]>([]);
+
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
       router.push("/login");
       return;
     }
+    // Load tags for filter dropdown
+    api.get<Tag[]>("/tags").then(setAllTags).catch(() => {});
+  }, [user, authLoading, router]);
+
+  useEffect(() => {
+    if (authLoading || !user) return;
+    setLoading(true);
+    const params: Record<string, string> = {};
+    if (statusFilter) params.status = statusFilter;
+    if (tagFilter) params.tag = tagFilter;
+    if (sortBy !== "newest") params.sort = sortBy;
+    params.per_page = "50";
+
     api
-      .get<PaginatedResponse<Post>>("/users/me/posts")
+      .get<PaginatedResponse<Post>>("/users/me/posts", params)
       .then((res) => setPosts(res.data || []))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [user, authLoading, router]);
+  }, [user, authLoading, statusFilter, tagFilter, sortBy]);
 
   const handlePublish = async (id: string) => {
     await api.post(`/posts/${id}/publish`);
@@ -73,6 +97,18 @@ export default function DashboardPage() {
     setDeleteId(null);
   };
 
+  const statusTabs: { label: string; value: StatusFilter }[] = [
+    { label: "All", value: "" },
+    { label: "Drafts", value: "draft" },
+    { label: "Published", value: "published" },
+  ];
+
+  const sortOptions: { label: string; value: SortOption }[] = [
+    { label: "Newest first", value: "newest" },
+    { label: "Oldest first", value: "oldest" },
+    { label: "Recently updated", value: "updated" },
+  ];
+
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar />
@@ -86,6 +122,64 @@ export default function DashboardPage() {
                 New Post
               </Link>
             </Button>
+          </div>
+
+          {/* Filter bar */}
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            {/* Status tabs */}
+            <div className="flex rounded-md border">
+              {statusTabs.map((tab) => (
+                <button
+                  key={tab.value}
+                  onClick={() => setStatusFilter(tab.value)}
+                  className={`px-3 py-1.5 text-sm transition-colors ${
+                    statusFilter === tab.value
+                      ? "bg-foreground text-background"
+                      : "text-muted-foreground hover:text-foreground"
+                  } ${tab.value === "" ? "rounded-l-md" : ""} ${
+                    tab.value === "published" ? "rounded-r-md" : ""
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Tag filter */}
+            {allTags.length > 0 && (
+              <select
+                value={tagFilter}
+                onChange={(e) => setTagFilter(e.target.value)}
+                className="rounded-md border bg-background px-2.5 py-1.5 text-sm text-foreground"
+              >
+                <option value="">All tags</option>
+                {allTags.map((tag) => (
+                  <option key={tag.id} value={tag.slug}>
+                    {tag.name}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {/* Sort */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <ArrowUpDown className="h-3.5 w-3.5" />
+                  {sortOptions.find((o) => o.value === sortBy)?.label}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {sortOptions.map((opt) => (
+                  <DropdownMenuItem
+                    key={opt.value}
+                    onClick={() => setSortBy(opt.value)}
+                  >
+                    {opt.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {loading ? (
@@ -102,7 +196,9 @@ export default function DashboardPage() {
               <PenSquare className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
               <h2 className="mb-1 font-semibold">No posts yet</h2>
               <p className="mb-4 text-sm text-muted-foreground">
-                Write your first post and share it with the world.
+                {statusFilter
+                  ? `No ${statusFilter} posts found.`
+                  : "Write your first post and share it with the world."}
               </p>
               <Button asChild>
                 <Link href="/editor">Create Post</Link>
@@ -113,10 +209,22 @@ export default function DashboardPage() {
               {posts.map((post) => (
                 <div
                   key={post.id}
-                  className="flex items-center justify-between rounded-lg border p-4"
+                  className="flex items-center gap-3 rounded-lg border p-4"
                 >
+                  {/* Feature image thumbnail */}
+                  {post.feature_image && (
+                    <img
+                      src={post.feature_image}
+                      alt=""
+                      className="hidden h-14 w-20 shrink-0 rounded border object-cover sm:block"
+                    />
+                  )}
+
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
+                      {post.featured && (
+                        <Star className="h-3.5 w-3.5 shrink-0 fill-yellow-400 text-yellow-400" />
+                      )}
                       <Link
                         href={`/post/${post.slug}`}
                         className="truncate font-semibold hover:underline"

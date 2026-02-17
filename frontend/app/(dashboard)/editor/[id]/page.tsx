@@ -1,17 +1,17 @@
 "use client";
 
-import { useState, useEffect, useCallback, use } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { BlockEditor } from "@/components/editor/block-editor";
+import { PostSettingsPanel } from "@/components/editor/post-settings-panel";
 import { useMediaUpload } from "@/lib/hooks/use-media-upload";
 import { api } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Post } from "@/lib/types";
 import type { JSONContent } from "novel";
-import { Save, Send, X, Loader2 } from "lucide-react";
+import { Save, Send, Settings, Loader2, X, Upload, Image as ImageIcon } from "lucide-react";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -20,17 +20,20 @@ interface Props {
 export default function EditPostPage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
-  const { uploadMedia } = useMediaUpload();
+  const { uploadMedia, uploading: featureUploading } = useMediaUpload();
   const [post, setPost] = useState<Post | null>(null);
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [contentJSON, setContentJSON] = useState<JSONContent | undefined>();
   const [initialContent, setInitialContent] = useState<JSONContent | undefined>();
   const [excerpt, setExcerpt] = useState("");
-  const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
+  const [slug, setSlug] = useState("");
+  const [featured, setFeatured] = useState(false);
+  const [featureImage, setFeatureImage] = useState("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     api
@@ -41,6 +44,9 @@ export default function EditPostPage({ params }: Props) {
         setSubtitle(p.subtitle || "");
         setExcerpt(p.excerpt || "");
         setTags(p.tags?.map((t) => t.name) || []);
+        setSlug(p.slug || "");
+        setFeatured(p.featured || false);
+        setFeatureImage(p.feature_image || "");
 
         if (p.content_format === "tiptap" && p.content_json) {
           try {
@@ -56,16 +62,21 @@ export default function EditPostPage({ params }: Props) {
       .finally(() => setLoading(false));
   }, [id, router]);
 
-  const addTag = useCallback(() => {
-    const tag = tagInput.trim();
-    if (tag && !tags.includes(tag)) {
-      setTags([...tags, tag]);
-      setTagInput("");
-    }
-  }, [tagInput, tags]);
-
-  const removeTag = (tag: string) => {
-    setTags(tags.filter((t) => t !== tag));
+  const handleFeatureImageUpload = async () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      try {
+        const url = await uploadMedia(file);
+        setFeatureImage(url);
+      } catch (err) {
+        console.error("Failed to upload feature image:", err);
+      }
+    };
+    input.click();
   };
 
   const handleSave = async () => {
@@ -78,6 +89,9 @@ export default function EditPostPage({ params }: Props) {
         content_json: contentJSON ? JSON.stringify(contentJSON) : undefined,
         excerpt,
         tags,
+        slug: slug || undefined,
+        featured,
+        feature_image: featureImage,
       });
       setPost(updated);
     } catch (err) {
@@ -127,6 +141,14 @@ export default function EditPostPage({ params }: Props) {
             <h1 className="text-lg font-semibold">Edit Post</h1>
             <div className="flex gap-2">
               <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSettingsOpen(true)}
+                title="Post settings"
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+              <Button
                 variant="outline"
                 size="sm"
                 onClick={handleSave}
@@ -148,6 +170,56 @@ export default function EditPostPage({ params }: Props) {
             </div>
           </div>
 
+          {/* Feature Image */}
+          {featureImage ? (
+            <div className="relative mb-6">
+              <img
+                src={featureImage}
+                alt="Feature"
+                className="h-64 w-full rounded-lg border object-cover"
+              />
+              <div className="absolute top-3 right-3 flex gap-1.5">
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="h-8 w-8 bg-background/80 backdrop-blur-sm"
+                  onClick={handleFeatureImageUpload}
+                  disabled={featureUploading}
+                >
+                  {featureUploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                </Button>
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="h-8 w-8 bg-background/80 backdrop-blur-sm"
+                  onClick={() => setFeatureImage("")}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleFeatureImageUpload}
+              disabled={featureUploading}
+              className="mb-6 flex h-16 w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed text-sm text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground/70"
+            >
+              {featureUploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <ImageIcon className="h-4 w-4" />
+                  Add feature image
+                </>
+              )}
+            </button>
+          )}
+
           {/* Title & Subtitle — Ghost-style borderless */}
           <div className="mb-2">
             <input
@@ -157,44 +229,12 @@ export default function EditPostPage({ params }: Props) {
               className="w-full bg-transparent text-4xl font-bold text-foreground placeholder:text-muted-foreground/50 outline-none"
             />
           </div>
-          <div className="mb-4">
+          <div className="mb-6">
             <input
               placeholder="Add a subtitle..."
               value={subtitle}
               onChange={(e) => setSubtitle(e.target.value)}
               className="w-full bg-transparent text-xl text-foreground/70 placeholder:text-muted-foreground/40 outline-none"
-            />
-          </div>
-
-          {/* Tags & Excerpt — compact row */}
-          <div className="mb-6 flex flex-wrap items-center gap-2 border-b border-border/50 pb-4">
-            {tags.map((tag) => (
-              <Badge key={tag} variant="secondary" className="gap-1">
-                {tag}
-                <button onClick={() => removeTag(tag)}>
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-            <input
-              placeholder="Add tag..."
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === ",") {
-                  e.preventDefault();
-                  addTag();
-                }
-              }}
-              onBlur={addTag}
-              className="w-28 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 outline-none"
-            />
-            <span className="text-border">|</span>
-            <input
-              placeholder="Excerpt..."
-              value={excerpt}
-              onChange={(e) => setExcerpt(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-foreground/70 placeholder:text-muted-foreground/40 outline-none"
             />
           </div>
 
@@ -206,6 +246,22 @@ export default function EditPostPage({ params }: Props) {
           />
         </div>
       </main>
+
+      {/* Post Settings Sidebar */}
+      <PostSettingsPanel
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        slug={slug}
+        onSlugChange={setSlug}
+        tags={tags}
+        onTagsChange={setTags}
+        excerpt={excerpt}
+        onExcerptChange={setExcerpt}
+        featured={featured}
+        onFeaturedChange={setFeatured}
+        featureImage={featureImage}
+        onFeatureImageChange={setFeatureImage}
+      />
     </div>
   );
 }

@@ -5,6 +5,11 @@ export interface User {
   display_name: string;
   bio: string;
   avatar_url: string;
+  website?: string;
+  twitter_url?: string;
+  github_url?: string;
+  meta_title?: string;
+  meta_description?: string;
   follower_count: number;
   following_count: number;
   is_following?: boolean;
@@ -23,6 +28,8 @@ export interface Post {
   content_json?: string;
   content_format: "markdown" | "tiptap";
   excerpt: string;
+  feature_image?: string;
+  featured: boolean;
   status: "draft" | "published";
   reading_time: number;
   like_count: number;
