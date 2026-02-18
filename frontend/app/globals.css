@@ -158,6 +158,10 @@
   body {
     @apply bg-background text-foreground;
   }
+  a, button, [role="button"], [type="button"], [type="submit"], [type="reset"],
+  label[for], summary, select, [tabindex]:not([tabindex="-1"]) {
+    cursor: pointer;
+  }
 }
 
 /* Text selection styling */
