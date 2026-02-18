@@ -572,46 +572,36 @@
 
 /* ===== Reading Preferences ===== */
 
-/* Font family overrides */
-.reading-font-serif,
-.reading-font-serif p,
-.reading-font-serif li,
-.reading-font-serif blockquote {
-  font-family: Georgia, Merriweather, "Times New Roman", serif !important;
+/* Font family overrides — set on container, cascades to all children */
+.reading-font-sans {
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
 }
 
-.reading-font-mono,
-.reading-font-mono p,
-.reading-font-mono li,
-.reading-font-mono blockquote {
-  font-family: "JetBrains Mono", "Fira Code", Consolas, monospace !important;
+.reading-font-serif {
+  font-family: Georgia, Merriweather, "Times New Roman", "Noto Serif", serif !important;
 }
 
-/* Sans is the default — no override needed, but explicit for clarity */
-.reading-font-sans,
-.reading-font-sans p,
-.reading-font-sans li,
-.reading-font-sans blockquote {
-  font-family: inherit;
+.reading-font-mono {
+  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace !important;
 }
 
 /* Font size overrides (small) */
-.reading-size-sm p { font-size: 0.9375rem !important; line-height: 1.7 !important; }
-.reading-size-sm li { font-size: 0.9375rem !important; line-height: 1.7 !important; }
-.reading-size-sm blockquote { font-size: 0.9375rem !important; }
-.reading-size-sm h1 { font-size: 1.875rem !important; }
-.reading-size-sm h2 { font-size: 1.5rem !important; }
-.reading-size-sm h3 { font-size: 1.25rem !important; }
+.reading-size-sm { font-size: 0.9375rem !important; line-height: 1.7 !important; }
+.reading-size-sm h1 { font-size: 1.875rem !important; line-height: 1.3 !important; }
+.reading-size-sm h2 { font-size: 1.5rem !important; line-height: 1.3 !important; }
+.reading-size-sm h3 { font-size: 1.25rem !important; line-height: 1.4 !important; }
 
-/* Font size overrides (medium — default, no change) */
+/* Font size overrides (medium — default body size) */
+.reading-size-md { font-size: 1.0625rem !important; line-height: 1.75 !important; }
+.reading-size-md h1 { font-size: 2.25rem !important; line-height: 1.2 !important; }
+.reading-size-md h2 { font-size: 1.75rem !important; line-height: 1.3 !important; }
+.reading-size-md h3 { font-size: 1.375rem !important; line-height: 1.4 !important; }
 
 /* Font size overrides (large) */
-.reading-size-lg p { font-size: 1.1875rem !important; line-height: 1.85 !important; }
-.reading-size-lg li { font-size: 1.1875rem !important; line-height: 1.85 !important; }
-.reading-size-lg blockquote { font-size: 1.1875rem !important; }
-.reading-size-lg h1 { font-size: 2.5rem !important; }
-.reading-size-lg h2 { font-size: 2.125rem !important; }
-.reading-size-lg h3 { font-size: 1.75rem !important; }
+.reading-size-lg { font-size: 1.1875rem !important; line-height: 1.85 !important; }
+.reading-size-lg h1 { font-size: 2.5rem !important; line-height: 1.2 !important; }
+.reading-size-lg h2 { font-size: 2.125rem !important; line-height: 1.3 !important; }
+.reading-size-lg h3 { font-size: 1.75rem !important; line-height: 1.4 !important; }
 
 /* ===== Focus Mode ===== */
 

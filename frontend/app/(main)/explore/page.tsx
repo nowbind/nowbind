@@ -107,7 +107,7 @@ function FeaturedSection({ posts }: { posts: Post[] }) {
                   {post.tags[0].name}
                 </span>
               )}
-              <h3 className="text-sm font-bold leading-snug line-clamp-2 group-hover:text-muted-foreground">
+              <h3 className="text-sm font-bold leading-snug line-clamp-2">
                 {post.title}
               </h3>
               <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
@@ -149,7 +149,7 @@ function TrendingSection({ posts }: { posts: Post[] }) {
               {String(i + 1).padStart(2, "0")}
             </span>
             <div className="min-w-0 flex-1">
-              <h3 className="text-sm font-semibold leading-snug line-clamp-2 group-hover:text-muted-foreground">
+              <h3 className="text-sm font-semibold leading-snug line-clamp-2">
                 {post.title}
               </h3>
               <div className="mt-2 flex items-center gap-3">

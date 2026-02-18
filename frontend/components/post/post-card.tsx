@@ -25,7 +25,7 @@ export function PostCard({ post, focused, "data-post-index": postIndex }: PostCa
       data-post-index={postIndex}
       className={cn(
         "group border-b py-6 first:pt-0 last:border-b-0 transition-colors rounded-lg",
-        focused && "bg-accent/50 ring-1 ring-primary/20 -mx-3 px-3"
+        focused && "bg-accent/50 ring-1 ring-primary/20"
       )}
     >
       <div className="flex gap-4">
@@ -35,7 +35,7 @@ export function PostCard({ post, focused, "data-post-index": postIndex }: PostCa
               {post.featured && (
                 <Star className="h-4 w-4 shrink-0 fill-yellow-400 text-yellow-400" />
               )}
-              <h2 className="text-lg font-bold tracking-tight text-foreground transition-colors group-hover:text-muted-foreground md:text-xl">
+              <h2 className="text-lg font-bold tracking-tight text-foreground md:text-xl">
                 {post.title}
               </h2>
             </div>
@@ -121,7 +121,7 @@ export function PostCard({ post, focused, "data-post-index": postIndex }: PostCa
             <img
               src={post.feature_image}
               alt=""
-              className="h-28 w-40 rounded-md border object-cover transition-opacity group-hover:opacity-80"
+              className="h-28 w-40 rounded-md border object-cover"
             />
           </Link>
         )}

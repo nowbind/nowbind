@@ -33,11 +33,20 @@ export function TableOfContents({ contentSelector = ".tiptap-content, .markdown-
   const sidebarRef = useRef<HTMLDivElement | null>(null);
 
   // Auto-scroll sidebar TOC to keep active item visible
+  // Use getBoundingClientRect to avoid scrollIntoView scrolling the main page
   useEffect(() => {
     if (!activeId || !sidebarRef.current) return;
-    const activeEl = sidebarRef.current.querySelector(`[data-toc-id="${activeId}"]`);
-    if (activeEl) {
-      activeEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    const activeEl = sidebarRef.current.querySelector(`[data-toc-id="${activeId}"]`) as HTMLElement | null;
+    if (!activeEl) return;
+
+    const container = sidebarRef.current;
+    const containerRect = container.getBoundingClientRect();
+    const elRect = activeEl.getBoundingClientRect();
+
+    if (elRect.top < containerRect.top) {
+      container.scrollTop -= containerRect.top - elRect.top;
+    } else if (elRect.bottom > containerRect.bottom) {
+      container.scrollTop += elRect.bottom - containerRect.bottom;
     }
   }, [activeId]);
 
@@ -141,7 +150,7 @@ export function TableOfContents({ contentSelector = ".tiptap-content, .markdown-
     <>
       {/* Desktop: sticky sidebar */}
       {variant !== "mobile" && (
-        <aside className={cn("hidden lg:block", variant === "desktop" && "lg:block")}>
+        <aside className={cn("hidden lg:block lg:h-full", variant === "desktop" && "lg:block")}>
           <div ref={sidebarRef} className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto">
             <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               On this page

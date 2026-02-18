@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Calendar, Clock } from "lucide-react";
 import { LikeButton } from "@/components/social/like-button";
 import { BookmarkButton } from "@/components/social/bookmark-button";
 import { ShareButtons } from "@/components/social/share-buttons";
@@ -64,7 +63,7 @@ export function PostHeader({ post }: PostHeaderProps) {
         <p className="text-lg text-muted-foreground">{post.subtitle}</p>
       )}
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         {post.author && (
           <Link
             href={`/author/${post.author.username}`}
@@ -80,27 +79,21 @@ export function PostHeader({ post }: PostHeaderProps) {
                   "U"}
               </AvatarFallback>
             </Avatar>
-            <span className="text-sm font-medium">
-              {post.author.display_name || post.author.username}
-            </span>
+            <div className="flex flex-col">
+              <span className="text-sm font-medium">
+                {post.author.display_name || post.author.username}
+              </span>
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                {publishDate && <span>{publishDate}</span>}
+                {publishDate && <span>&middot;</span>}
+                <span>{post.reading_time} min read</span>
+              </span>
+            </div>
           </Link>
         )}
-
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          {publishDate && (
-            <span className="flex items-center gap-1">
-              <Calendar className="h-3.5 w-3.5" />
-              {publishDate}
-            </span>
-          )}
-          <span className="flex items-center gap-1">
-            <Clock className="h-3.5 w-3.5" />
-            {post.reading_time} min read
-          </span>
-        </div>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between border-y py-2">
         <div className="flex items-center gap-1">
           <LikeButton postId={post.id} initialLiked={liked} initialCount={post.like_count} />
           <BookmarkButton postId={post.id} initialBookmarked={bookmarked} />

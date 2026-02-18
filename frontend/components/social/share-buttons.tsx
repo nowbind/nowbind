@@ -70,18 +70,18 @@ export function ShareButtons({ url, title }: ShareButtonsProps) {
   };
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-0.5">
       {/* Native share on mobile */}
       {canNativeShare && (
-        <Button variant="ghost" size="sm" onClick={handleNativeShare} className="gap-1.5 text-muted-foreground">
+        <Button variant="ghost" size="icon-sm" onClick={handleNativeShare} className="text-muted-foreground">
           <Share2 className="h-4 w-4" />
-          Share
+          <span className="sr-only">Share</span>
         </Button>
       )}
 
-      <Button variant="ghost" size="sm" onClick={copyLink} className="gap-1.5 text-muted-foreground">
+      <Button variant="ghost" size="icon-sm" onClick={copyLink} className="text-muted-foreground">
         {copied ? <Check className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
-        {copied ? "Copied" : "Copy link"}
+        <span className="sr-only">{copied ? "Copied" : "Copy link"}</span>
       </Button>
       <Button variant="ghost" size="icon-sm" onClick={shareTwitter} className="text-muted-foreground">
         <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">

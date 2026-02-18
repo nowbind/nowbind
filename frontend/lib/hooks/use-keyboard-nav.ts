@@ -45,9 +45,14 @@ export function useKeyboardNav({
   }, [posts]);
 
   const scrollToPost = useCallback((index: number) => {
-    const el = document.querySelector(`[data-post-index="${index}"]`);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    const el = document.querySelector(`[data-post-index="${index}"]`) as HTMLElement | null;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    // Only scroll if the element is outside the viewport
+    if (rect.top < 0) {
+      window.scrollBy({ top: rect.top - 80, behavior: "smooth" });
+    } else if (rect.bottom > window.innerHeight) {
+      window.scrollBy({ top: rect.bottom - window.innerHeight + 20, behavior: "smooth" });
     }
   }, []);
 
@@ -77,10 +82,9 @@ export function useKeyboardNav({
 
       // j — next post
       if (key === "j") {
-        e.preventDefault();
         setFocusedIndex((prev) => {
           const next = prev < posts.length - 1 ? prev + 1 : prev;
-          scrollToPost(next);
+          requestAnimationFrame(() => scrollToPost(next));
           return next;
         });
         return;
@@ -88,10 +92,9 @@ export function useKeyboardNav({
 
       // k — previous post
       if (key === "k") {
-        e.preventDefault();
         setFocusedIndex((prev) => {
           const next = prev > 0 ? prev - 1 : 0;
-          scrollToPost(next);
+          requestAnimationFrame(() => scrollToPost(next));
           return next;
         });
         return;

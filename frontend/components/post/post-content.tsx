@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import DOMPurify from "dompurify";
+import createDOMPurify from "dompurify";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -169,7 +169,8 @@ export function PostContent({ content, contentJSON, contentFormat }: PostContent
         className="tiptap-content"
         ref={(el) => { contentRef.current = el; addHeadingIds(el); }}
         dangerouslySetInnerHTML={{ __html: (() => {
-          const clean = DOMPurify.sanitize(tiptapHTML, {
+          const purify = createDOMPurify(window);
+          const clean = purify.sanitize(tiptapHTML, {
             ADD_TAGS: ["iframe"],
             ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "src", "sandbox", "loading"],
             ALLOWED_URI_REGEXP: /^(?:(?:https?):\/\/|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,

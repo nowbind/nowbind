@@ -9,10 +9,11 @@ import {
   ChevronUp,
 } from "lucide-react";
 
-type FontFamily = "sans" | "serif" | "mono";
+type FontFamily = "default" | "sans" | "serif" | "mono";
 type FontSize = "sm" | "md" | "lg";
 
 const FONT_FAMILIES: { value: FontFamily; label: string }[] = [
+  { value: "default", label: "Default" },
   { value: "sans", label: "Sans" },
   { value: "serif", label: "Serif" },
   { value: "mono", label: "Mono" },
@@ -32,18 +33,18 @@ interface ReadingPrefs {
 }
 
 function loadPrefs(): ReadingPrefs {
-  if (typeof window === "undefined") return { fontFamily: "sans", fontSize: "md" };
+  if (typeof window === "undefined") return { fontFamily: "default", fontSize: "md" };
   try {
     const raw = localStorage.getItem(LS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       return {
-        fontFamily: parsed.fontFamily || "sans",
+        fontFamily: parsed.fontFamily || "default",
         fontSize: parsed.fontSize || "md",
       };
     }
   } catch {}
-  return { fontFamily: "sans", fontSize: "md" };
+  return { fontFamily: "default", fontSize: "md" };
 }
 
 function savePrefs(prefs: ReadingPrefs) {
@@ -53,7 +54,7 @@ function savePrefs(prefs: ReadingPrefs) {
 }
 
 export function ReadingToolbar() {
-  const [prefs, setPrefs] = useState<ReadingPrefs>({ fontFamily: "sans", fontSize: "md" });
+  const [prefs, setPrefs] = useState<ReadingPrefs>({ fontFamily: "default", fontSize: "md" });
   const [focusMode, setFocusMode] = useState(false);
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -72,8 +73,10 @@ export function ReadingToolbar() {
     if (!content) return;
 
     // Font family
-    content.classList.remove("reading-font-sans", "reading-font-serif", "reading-font-mono");
-    content.classList.add(`reading-font-${prefs.fontFamily}`);
+    content.classList.remove("reading-font-default", "reading-font-sans", "reading-font-serif", "reading-font-mono");
+    if (prefs.fontFamily !== "default") {
+      content.classList.add(`reading-font-${prefs.fontFamily}`);
+    }
 
     // Font size
     content.classList.remove("reading-size-sm", "reading-size-md", "reading-size-lg");
@@ -137,21 +140,21 @@ export function ReadingToolbar() {
               Font
             </div>
             <div className="flex rounded-md border">
-              {FONT_FAMILIES.map((f) => (
+              {FONT_FAMILIES.map((f, i) => (
                 <button
                   key={f.value}
                   onClick={() => updatePrefs({ fontFamily: f.value })}
-                  className={`flex-1 px-2 py-1.5 text-xs transition-colors ${
+                  className={`flex-1 px-1.5 py-1.5 text-xs transition-colors ${
                     prefs.fontFamily === f.value
                       ? "bg-foreground text-background"
                       : "text-muted-foreground hover:text-foreground"
-                  } ${f.value === "sans" ? "rounded-l-md" : ""} ${
-                    f.value === "mono" ? "rounded-r-md" : ""
+                  } ${i === 0 ? "rounded-l-md" : ""} ${
+                    i === FONT_FAMILIES.length - 1 ? "rounded-r-md" : ""
                   }`}
                   style={{
                     fontFamily:
                       f.value === "serif"
-                        ? "Georgia, Merriweather, serif"
+                        ? "Georgia, serif"
                         : f.value === "mono"
                           ? "'JetBrains Mono', monospace"
                           : "inherit",
