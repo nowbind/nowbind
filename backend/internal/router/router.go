@@ -66,6 +66,8 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 	notifH := handler.NewNotificationHandler(notifRepo, pushRepo, notifService)
 	analyticsH := handler.NewAnalyticsHandler(analyticsRepo, postRepo)
 	mediaH := handler.NewMediaHandler(mediaService)
+	importService := service.NewImportService(postRepo, tagRepo)
+	importH := handler.NewImportHandler(importService)
 
 	// Health
 	r.Get("/health", healthH.Health)
@@ -204,6 +206,13 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 		r.Route("/media", func(r chi.Router) {
 			r.Use(middleware.AuthMiddleware(cfg.JWTSecret, pool))
 			r.Post("/upload", mediaH.Upload)
+		})
+
+		// Import
+		r.Route("/import", func(r chi.Router) {
+			r.Use(middleware.AuthMiddleware(cfg.JWTSecret, pool))
+			r.Use(middleware.MaxBodySize(50 << 20)) // 50MB for ZIP uploads
+			r.Post("/medium", importH.MediumImport)
 		})
 
 		// API Keys

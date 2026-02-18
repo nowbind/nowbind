@@ -70,9 +70,11 @@ export default function TermsPage() {
                 through RSS feeds, API endpoints, and structured data formats.
               </p>
               <p className="mt-2">
-                NowBind is open source under the MIT license. The Platform
-                software is freely available, but user-generated content remains
-                owned by its respective authors.
+                NowBind is open source under the GNU Affero General Public
+                License v3.0 (AGPL-3.0). The Platform software is freely
+                available, but user-generated content remains owned by its
+                respective authors. If you modify and host NowBind as a network
+                service, you must release your modifications under AGPL-3.0.
               </p>
             </section>
 

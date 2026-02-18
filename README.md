@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/nowbind/nowbind/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License" /></a>
+  <a href="https://github.com/nowbind/nowbind/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue" alt="License" /></a>
   <img src="https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white" alt="Go" />
   <img src="https://img.shields.io/badge/Next.js-16-000?logo=next.js" alt="Next.js" />
   <img src="https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL" />
@@ -363,4 +363,4 @@ Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before
 
 ## License
 
-[Apache License 2.0](LICENSE) — you are free to use, modify, and distribute this software, but **attribution is required**. See the [NOTICE](NOTICE) file for details.
+[GNU Affero General Public License v3.0](LICENSE) — this is copyleft software. If you modify and host NowBind as a network service, you must release your modifications under AGPL-3.0. See the [NOTICE](NOTICE) file for attribution requirements.

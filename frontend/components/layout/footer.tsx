@@ -8,7 +8,7 @@ export function Footer() {
         <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
           <div className="flex flex-col items-center gap-1 md:items-start">
             <p className="text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} NowBind. Open source under MIT.
+              &copy; {new Date().getFullYear()} NowBind
             </p>
             <p className="text-xs text-muted-foreground">
               Every post is human-readable and AI-agent-consumable.

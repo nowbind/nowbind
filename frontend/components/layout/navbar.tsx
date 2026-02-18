@@ -118,6 +118,9 @@ export function Navbar() {
                   <DropdownMenuItem asChild>
                     <Link href="/api-keys">API Keys</Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/import">Import</Link>
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={logout}>Log out</DropdownMenuItem>
                 </DropdownMenuContent>

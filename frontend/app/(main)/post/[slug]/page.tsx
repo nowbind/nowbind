@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { API_URL, SITE_URL } from "@/lib/constants";
+import { safeJsonLd } from "@/lib/utils";
 import type { Post } from "@/lib/types";
 import type { Metadata } from "next";
 import { PostContent } from "@/components/post/post-content";
@@ -11,6 +12,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { ReadingProgress } from "@/components/layout/reading-progress";
 import { TableOfContents } from "@/components/post/table-of-contents";
+import { ReadingToolbar } from "@/components/post/reading-toolbar";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -88,7 +90,9 @@ export default async function PostPage({ params }: Props) {
             <article>
               <PostHeader post={post} />
               {/* Mobile TOC (hidden on desktop) */}
-              <TableOfContents variant="mobile" />
+              <div data-toc>
+                <TableOfContents variant="mobile" />
+              </div>
               <PostContent
                 content={post.content}
                 contentJSON={post.content_json}
@@ -98,21 +102,24 @@ export default async function PostPage({ params }: Props) {
           </div>
 
           {/* Desktop TOC sidebar (hidden on mobile) */}
-          <TableOfContents variant="desktop" />
+          <div data-toc>
+            <TableOfContents variant="desktop" />
+          </div>
         </div>
 
-        <div className="mx-auto max-w-3xl space-y-12 px-4 pb-12">
+        <div data-post-extras className="mx-auto max-w-3xl space-y-12 px-4 pb-12">
           <CommentSection postId={post.id} initialCount={post.comment_count} />
           <RelatedPosts slug={post.slug} />
         </div>
 
         <ViewTracker slug={post.slug} />
+        <ReadingToolbar />
 
         {/* JSON-LD for the article */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: safeJsonLd({
               "@context": "https://schema.org",
               "@type": "Article",
               headline: post.title,

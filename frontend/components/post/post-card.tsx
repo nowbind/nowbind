@@ -2,13 +2,16 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Calendar, Clock, Heart, MessageSquare, Star } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { Post } from "@/lib/types";
 
 interface PostCardProps {
   post: Post;
+  focused?: boolean;
+  "data-post-index"?: number;
 }
 
-export function PostCard({ post }: PostCardProps) {
+export function PostCard({ post, focused, "data-post-index": postIndex }: PostCardProps) {
   const publishDate = post.published_at
     ? new Date(post.published_at).toLocaleDateString("en-US", {
         year: "numeric",
@@ -18,7 +21,13 @@ export function PostCard({ post }: PostCardProps) {
     : null;
 
   return (
-    <article className="group border-b py-6 first:pt-0 last:border-b-0">
+    <article
+      data-post-index={postIndex}
+      className={cn(
+        "group border-b py-6 first:pt-0 last:border-b-0 transition-colors rounded-lg",
+        focused && "bg-accent/50 ring-1 ring-primary/20 -mx-3 px-3"
+      )}
+    >
       <div className="flex gap-4">
         <div className="min-w-0 flex-1">
           <Link href={`/post/${post.slug}`} className="block space-y-2">

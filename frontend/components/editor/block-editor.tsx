@@ -6,6 +6,8 @@ import { defaultExtensions } from "./extensions";
 import { EditorBubbleMenu } from "./bubble-menu";
 import { EditorToolbar } from "./editor-toolbar";
 import type { Editor } from "@tiptap/core";
+import { getReadingTime } from "@/lib/utils";
+import { detectProvider } from "./extensions/embed-utils";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-type UrlPromptType = "image" | "youtube" | "bookmark" | "link";
+type UrlPromptType = "image" | "youtube" | "bookmark" | "link" | "embed";
 
 const urlPromptConfig: Record<
   UrlPromptType,
@@ -42,6 +44,11 @@ const urlPromptConfig: Record<
     title: "Add Link",
     description: "Paste the URL to link the selected text.",
     placeholder: "https://example.com",
+  },
+  embed: {
+    title: "Embed URL",
+    description: "Paste a URL from Twitter/X, GitHub Gist, or CodePen.",
+    placeholder: "https://twitter.com/user/status/...",
   },
 };
 
@@ -121,6 +128,18 @@ export function BlockEditor({
       case "link":
         editor.chain().focus().setLink({ href: url }).run();
         break;
+      case "embed": {
+        const provider = detectProvider(url);
+        if (provider === "youtube") {
+          editor.chain().focus().setYoutubeVideo({ src: url }).run();
+        } else if (provider) {
+          editor.chain().focus().setEmbed({ provider, url }).run();
+        } else {
+          // Fallback to bookmark for unrecognized URLs
+          editor.chain().focus().setBookmark({ url, title: url }).run();
+        }
+        break;
+      }
     }
 
     setUrlPrompt(null);
@@ -224,7 +243,7 @@ export function BlockEditor({
       {/* Word count */}
       <div className="pointer-events-none sticky bottom-4 flex justify-end pr-2 pt-2">
         <span className="pointer-events-auto rounded-md bg-muted/80 px-2.5 py-1 text-xs text-muted-foreground backdrop-blur-sm">
-          {wordCount} {wordCount === 1 ? "word" : "words"} · {Math.max(1, Math.ceil(wordCount / 200))} min read
+          {wordCount} {wordCount === 1 ? "word" : "words"} · {getReadingTime(wordCount)}
         </span>
       </div>
 

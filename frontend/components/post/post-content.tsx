@@ -21,6 +21,7 @@ import Youtube from "@tiptap/extension-youtube";
 import { common, createLowlight } from "lowlight";
 import { Callout } from "@/components/editor/extensions/callout";
 import { Bookmark } from "@/components/editor/extensions/bookmark";
+import { Embed } from "@/components/editor/extensions/embed";
 
 const lowlight = createLowlight(common);
 
@@ -105,6 +106,7 @@ const tiptapExtensions = [
   Youtube,
   Callout,
   Bookmark,
+  Embed,
 ];
 
 function slugify(text: string): string {
@@ -166,10 +168,34 @@ export function PostContent({ content, contentJSON, contentFormat }: PostContent
       <div
         className="tiptap-content"
         ref={(el) => { contentRef.current = el; addHeadingIds(el); }}
-        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(tiptapHTML, {
-          ADD_TAGS: ["iframe"],
-          ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "src"],
-        }) }}
+        dangerouslySetInnerHTML={{ __html: (() => {
+          const clean = DOMPurify.sanitize(tiptapHTML, {
+            ADD_TAGS: ["iframe"],
+            ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "src", "sandbox", "loading"],
+            ALLOWED_URI_REGEXP: /^(?:(?:https?):\/\/|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
+          });
+          // Post-process: validate iframe src against whitelist
+          const div = document.createElement("div");
+          div.innerHTML = clean;
+          div.querySelectorAll("iframe").forEach((iframe) => {
+            const src = iframe.getAttribute("src") || "";
+            const allowedDomains = [
+              "youtube.com", "www.youtube.com", "youtube-nocookie.com", "www.youtube-nocookie.com",
+              "twitter.com", "x.com", "platform.twitter.com",
+              "codepen.io",
+              "gist.github.com",
+            ];
+            try {
+              const url = new URL(src);
+              if (!allowedDomains.some((d) => url.hostname === d || url.hostname.endsWith("." + d))) {
+                iframe.remove();
+              }
+            } catch {
+              iframe.remove();
+            }
+          });
+          return div.innerHTML;
+        })() }}
       />
     );
   }

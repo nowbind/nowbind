@@ -185,7 +185,7 @@ func (h *UserHandler) ExportData(w http.ResponseWriter, r *http.Request) {
 	posts, _, err := h.posts.List(r.Context(), repository.ListPostsParams{
 		AuthorID: userID,
 		Page:     1,
-		PerPage:  10000,
+		PerPage:  1000,
 	})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to export data")

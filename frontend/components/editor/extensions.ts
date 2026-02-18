@@ -17,6 +17,7 @@ import { common, createLowlight } from "lowlight";
 import { Markdown } from "tiptap-markdown";
 import { Callout } from "./extensions/callout";
 import { Bookmark } from "./extensions/bookmark";
+import { Embed } from "./extensions/embed";
 import { SlashCommandList, commandGroups } from "./slash-command-list";
 
 const lowlight = createLowlight(common);
@@ -275,6 +276,7 @@ export const defaultExtensions = [
   YoutubeResize,
   Callout,
   Bookmark,
+  Embed,
   Markdown.configure({
     html: true,
     transformPastedText: true,

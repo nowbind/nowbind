@@ -92,4 +92,4 @@ Open an issue with:
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the [Apache License 2.0](LICENSE). All contributions must include proper attribution as described in the [NOTICE](NOTICE) file.
+By contributing, you agree that your contributions will be licensed under the [GNU Affero General Public License v3.0](LICENSE).

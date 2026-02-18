@@ -293,27 +293,36 @@ func (h *AuthHandler) setAuthCookies(w http.ResponseWriter, accessToken, refresh
 }
 
 func (h *AuthHandler) clearAuthCookies(w http.ResponseWriter) {
+	secure := h.cfg.Environment == "production"
+	sameSite := http.SameSiteLaxMode
+	if h.cfg.CookieDomain != "" {
+		sameSite = http.SameSiteNoneMode
+		secure = true
+	}
 	http.SetCookie(w, &http.Cookie{
-		Name:   "access_token",
-		Value:  "",
-		Path:   "/",
-		Domain: h.cfg.CookieDomain,
-		MaxAge: -1,
+		Name:     "access_token",
+		Value:    "",
+		Path:     "/",
+		Domain:   h.cfg.CookieDomain,
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: sameSite,
+		MaxAge:   -1,
 	})
 	http.SetCookie(w, &http.Cookie{
-		Name:   "refresh_token",
-		Value:  "",
-		Path:   "/",
-		Domain: h.cfg.CookieDomain,
-		MaxAge: -1,
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/",
+		Domain:   h.cfg.CookieDomain,
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: sameSite,
+		MaxAge:   -1,
 	})
 }
 
 func (h *AuthHandler) logLogin(r *http.Request, userID, method string) {
 	ip := stripPort(r.RemoteAddr)
-	if fwd := r.Header.Get("X-Real-Ip"); fwd != "" {
-		ip = stripPort(fwd)
-	}
 	ua := r.Header.Get("User-Agent")
 	go h.loginLog.Log(context.Background(), userID, ip, ua, method)
 }

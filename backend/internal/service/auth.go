@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/nowbind/nowbind/internal/model"
@@ -92,10 +93,14 @@ type GoogleUserInfo struct {
 
 func (s *AuthService) HandleGoogleCallback(ctx context.Context, code, clientID, clientSecret, redirectURI string) (*model.User, *model.Session, string, error) {
 	// Exchange code for tokens
-	tokenBody := fmt.Sprintf(
-		"code=%s&client_id=%s&client_secret=%s&redirect_uri=%s&grant_type=authorization_code",
-		code, clientID, clientSecret, redirectURI,
-	)
+	values := url.Values{
+		"code":          {code},
+		"client_id":     {clientID},
+		"client_secret": {clientSecret},
+		"redirect_uri":  {redirectURI},
+		"grant_type":    {"authorization_code"},
+	}
+	tokenBody := values.Encode()
 
 	resp, err := http.Post(
 		"https://oauth2.googleapis.com/token",
@@ -166,10 +171,12 @@ func (s *AuthService) HandleGoogleCallback(ctx context.Context, code, clientID, 
 // HandleGitHubCallback handles GitHub OAuth callback
 func (s *AuthService) HandleGitHubCallback(ctx context.Context, code, clientID, clientSecret string) (*model.User, *model.Session, string, error) {
 	// Exchange code for tokens
-	tokenBody := fmt.Sprintf(
-		"client_id=%s&client_secret=%s&code=%s",
-		clientID, clientSecret, code,
-	)
+	ghValues := url.Values{
+		"client_id":     {clientID},
+		"client_secret": {clientSecret},
+		"code":          {code},
+	}
+	tokenBody := ghValues.Encode()
 
 	req, _ := http.NewRequestWithContext(ctx, "POST", "https://github.com/login/oauth/access_token", strings.NewReader(tokenBody))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")

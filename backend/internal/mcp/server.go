@@ -159,7 +159,8 @@ func init() {
 }
 
 func handleError(err error) *rpcError {
-	return &rpcError{Code: -32603, Message: err.Error()}
+	log.Printf("mcp error: %v", err)
+	return &rpcError{Code: -32603, Message: "internal server error"}
 }
 
 // ensure MCPServer implements http.Handler
