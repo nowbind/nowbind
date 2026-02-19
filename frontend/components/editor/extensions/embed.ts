@@ -70,7 +70,8 @@ export const Embed = Node.create<EmbedOptions>({
               src: `https://platform.twitter.com/embed/Tweet.html?id=${tweetId}`,
               sandbox: "allow-scripts allow-same-origin allow-popups",
               loading: "lazy",
-              style: "width: 100%; min-height: 350px; border: none; border-radius: 0.75rem;",
+              style:
+                "width: 100%; min-height: 350px; border: none; border-radius: 0.75rem;",
             },
           ],
         ];
@@ -87,9 +88,11 @@ export const Embed = Node.create<EmbedOptions>({
             "iframe",
             {
               src: `https://codepen.io/${parts.user}/embed/${parts.pen}?default-tab=result`,
-              sandbox: "allow-scripts allow-same-origin allow-popups allow-forms",
+              sandbox:
+                "allow-scripts allow-same-origin allow-popups allow-forms",
               loading: "lazy",
-              style: "width: 100%; height: 400px; border: none; border-radius: 0.75rem;",
+              style:
+                "width: 100%; height: 400px; border: none; border-radius: 0.75rem;",
             },
           ],
         ];
@@ -106,7 +109,7 @@ export const Embed = Node.create<EmbedOptions>({
           {
             href: url,
             target: "_blank",
-            rel: "noopener noreferrer",
+            rel: "noopener",
             class: "embed-gist-link",
           },
           [
@@ -127,7 +130,7 @@ export const Embed = Node.create<EmbedOptions>({
     return [
       "div",
       wrapperAttrs,
-      ["a", { href: url, target: "_blank", rel: "noopener noreferrer" }, url],
+      ["a", { href: url, target: "_blank", rel: "noopener" }, url],
     ];
   },
 

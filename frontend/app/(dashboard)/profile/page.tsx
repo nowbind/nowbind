@@ -14,7 +14,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/hooks/use-auth";
 import type { Post, User, PaginatedResponse } from "@/lib/types";
-import { Settings, Users, UserPlus, FileText, ChevronLeft, ChevronRight, Globe, Twitter, Github } from "lucide-react";
+import {
+  Settings,
+  Users,
+  UserPlus,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  Globe,
+  Twitter,
+  Github,
+} from "lucide-react";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -160,9 +170,7 @@ export default function ProfilePage() {
                     </Link>
                   </Button>
                 </div>
-                {profile.bio && (
-                  <p className="mt-2 text-sm">{profile.bio}</p>
-                )}
+                {profile.bio && <p className="mt-2 text-sm">{profile.bio}</p>}
                 <div className="mt-3 flex items-center gap-6 text-sm">
                   <button
                     onClick={() => setActiveTab("followers")}
@@ -190,13 +198,15 @@ export default function ProfilePage() {
                   </span>
                 </div>
                 {/* Social links */}
-                {(profile.website || profile.twitter_url || profile.github_url) && (
+                {(profile.website ||
+                  profile.twitter_url ||
+                  profile.github_url) && (
                   <div className="mt-3 flex items-center gap-3">
                     {profile.website && (
                       <a
                         href={profile.website}
                         target="_blank"
-                        rel="noopener noreferrer"
+                        rel="noopener"
                         className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
                       >
                         <Globe className="h-4 w-4" />
@@ -207,7 +217,7 @@ export default function ProfilePage() {
                       <a
                         href={profile.twitter_url}
                         target="_blank"
-                        rel="noopener noreferrer"
+                        rel="noopener"
                         className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
                       >
                         <Twitter className="h-4 w-4" />
@@ -218,7 +228,7 @@ export default function ProfilePage() {
                       <a
                         href={profile.github_url}
                         target="_blank"
-                        rel="noopener noreferrer"
+                        rel="noopener"
                         className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
                       >
                         <Github className="h-4 w-4" />

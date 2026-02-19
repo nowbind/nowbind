@@ -74,7 +74,7 @@ export function EmbedComponent({ node, deleteNode, selected }: any) {
         <a
           href={url}
           target="_blank"
-          rel="noopener noreferrer"
+          rel="noopener"
           className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors no-underline"
         >
           <Github className="h-8 w-8 text-gray-600 dark:text-gray-400 shrink-0" />
@@ -94,7 +94,7 @@ export function EmbedComponent({ node, deleteNode, selected }: any) {
       <a
         href={url}
         target="_blank"
-        rel="noopener noreferrer"
+        rel="noopener"
         className="text-sm underline"
       >
         {url}

@@ -341,7 +341,7 @@ export default function HomePage() {
                   <a
                     href="https://github.com/nowbind/nowbind"
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="noopener"
                   >
                     View on GitHub
                   </a>

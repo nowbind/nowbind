@@ -65,9 +65,10 @@ export default function TermsPage() {
               <p>
                 You retain full ownership of the content you publish on NowBind.
                 By publishing a post, you grant NowBind a worldwide,
-                non-exclusive, royalty-free license to host, display, distribute,
-                and make your content available through the Platform, including
-                through RSS feeds, API endpoints, and structured data formats.
+                non-exclusive, royalty-free license to host, display,
+                distribute, and make your content available through the
+                Platform, including through RSS feeds, API endpoints, and
+                structured data formats.
               </p>
               <p className="mt-2">
                 NowBind is open source under the GNU Affero General Public
@@ -122,10 +123,10 @@ export default function TermsPage() {
                   nb_
                 </code>
                 ) are issued for programmatic access to the Platform. You must
-                keep your API keys confidential and must not share them publicly.
-                Abuse of API keys, including exceeding rate limits or attempting
-                to circumvent security measures, may result in key revocation and
-                account suspension.
+                keep your API keys confidential and must not share them
+                publicly. Abuse of API keys, including exceeding rate limits or
+                attempting to circumvent security measures, may result in key
+                revocation and account suspension.
               </p>
             </section>
 
@@ -155,9 +156,9 @@ export default function TermsPage() {
               </h2>
               <p>
                 We may suspend or terminate your account at any time for
-                violation of these terms. You may delete your account at any time
-                through your profile settings. Upon termination, your published
-                posts may be removed from the Platform.
+                violation of these terms. You may delete your account at any
+                time through your profile settings. Upon termination, your
+                published posts may be removed from the Platform.
               </p>
             </section>
 
@@ -168,9 +169,9 @@ export default function TermsPage() {
               <p>
                 NowBind is provided &quot;as is&quot; and &quot;as
                 available&quot; without warranties of any kind, express or
-                implied. We do not guarantee uninterrupted or error-free service.
-                We are not responsible for the accuracy or reliability of
-                user-generated content.
+                implied. We do not guarantee uninterrupted or error-free
+                service. We are not responsible for the accuracy or reliability
+                of user-generated content.
               </p>
             </section>
 
@@ -181,8 +182,8 @@ export default function TermsPage() {
               <p>
                 To the maximum extent permitted by law, NowBind and its
                 maintainers shall not be liable for any indirect, incidental,
-                special, consequential, or punitive damages arising from your use
-                of the Platform.
+                special, consequential, or punitive damages arising from your
+                use of the Platform.
               </p>
             </section>
 
@@ -208,7 +209,7 @@ export default function TermsPage() {
                 <a
                   href="https://github.com/nowbind/nowbind"
                   target="_blank"
-                  rel="noopener noreferrer"
+                  rel="noopener"
                   className="text-foreground underline underline-offset-4"
                 >
                   GitHub repository

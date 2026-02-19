@@ -4,8 +4,7 @@ import { Footer } from "@/components/layout/footer";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description:
-    "Privacy Policy for NowBind, the open-source blogging platform.",
+  description: "Privacy Policy for NowBind, the open-source blogging platform.",
   alternates: {
     canonical: "/privacy",
   },
@@ -61,12 +60,8 @@ export default function PrivacyPage() {
                 <li>Provide and maintain the Platform</li>
                 <li>Authenticate your identity and secure your account</li>
                 <li>Display your profile and published content</li>
-                <li>
-                  Send transactional emails (magic links, notifications)
-                </li>
-                <li>
-                  Monitor for abuse and enforce our Terms of Service
-                </li>
+                <li>Send transactional emails (magic links, notifications)</li>
+                <li>Monitor for abuse and enforce our Terms of Service</li>
               </ul>
             </section>
 
@@ -94,7 +89,7 @@ export default function PrivacyPage() {
                 <a
                   href="https://policies.google.com/privacy"
                   target="_blank"
-                  rel="noopener noreferrer"
+                  rel="noopener"
                   className="text-foreground underline underline-offset-4"
                 >
                   Google
@@ -103,7 +98,7 @@ export default function PrivacyPage() {
                 <a
                   href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement"
                   target="_blank"
-                  rel="noopener noreferrer"
+                  rel="noopener"
                   className="text-foreground underline underline-offset-4"
                 >
                   GitHub
@@ -148,9 +143,9 @@ export default function PrivacyPage() {
               </h2>
               <p>
                 We retain your account data and published content for as long as
-                your account is active. If you delete your account, your personal
-                data will be removed. Published posts may be retained in an
-                anonymized form or removed entirely at your request.
+                your account is active. If you delete your account, your
+                personal data will be removed. Published posts may be retained
+                in an anonymized form or removed entirely at your request.
               </p>
             </section>
 
@@ -213,7 +208,7 @@ export default function PrivacyPage() {
                 <a
                   href="https://github.com/nowbind/nowbind"
                   target="_blank"
-                  rel="noopener noreferrer"
+                  rel="noopener"
                   className="text-foreground underline underline-offset-4"
                 >
                   GitHub repository

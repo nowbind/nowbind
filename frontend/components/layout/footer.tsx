@@ -34,7 +34,7 @@ export function Footer() {
             <a
               href="https://github.com/nowbind/nowbind"
               target="_blank"
-              rel="noopener noreferrer"
+              rel="noopener"
               className="transition-colors hover:text-foreground"
             >
               GitHub

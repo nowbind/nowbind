@@ -89,18 +89,17 @@ export function AuthorContent({
                     prev
                       ? {
                           ...prev,
-                          follower_count: prev.follower_count + (nowFollowing ? 1 : -1),
+                          follower_count:
+                            prev.follower_count + (nowFollowing ? 1 : -1),
                           is_following: nowFollowing,
                         }
-                      : prev
+                      : prev,
                   );
                 }}
               />
             )}
           </div>
-          {author.bio && (
-            <p className="mt-2 text-sm">{author.bio}</p>
-          )}
+          {author.bio && <p className="mt-2 text-sm">{author.bio}</p>}
           <div className="mt-3 flex items-center gap-4 text-sm text-muted-foreground">
             <Link
               href={`/author/${username}/followers`}
@@ -128,7 +127,7 @@ export function AuthorContent({
                 <a
                   href={author.website}
                   target="_blank"
-                  rel="noopener noreferrer"
+                  rel="noopener"
                   className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                   <Globe className="h-4 w-4" />
@@ -139,7 +138,7 @@ export function AuthorContent({
                 <a
                   href={author.twitter_url}
                   target="_blank"
-                  rel="noopener noreferrer"
+                  rel="noopener"
                   className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                   <Twitter className="h-4 w-4" />
@@ -150,7 +149,7 @@ export function AuthorContent({
                 <a
                   href={author.github_url}
                   target="_blank"
-                  rel="noopener noreferrer"
+                  rel="noopener"
                   className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
                   <Github className="h-4 w-4" />
