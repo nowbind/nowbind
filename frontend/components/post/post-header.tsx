@@ -7,9 +7,11 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { LikeButton } from "@/components/social/like-button";
 import { BookmarkButton } from "@/components/social/bookmark-button";
 import { ShareButtons } from "@/components/social/share-buttons";
+import { FollowButton } from "@/components/social/follow-button";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { api } from "@/lib/api";
-import type { Post } from "@/lib/types";
+import type { Post, User } from "@/lib/types";
 
 interface PostHeaderProps {
   post: Post;
@@ -20,20 +22,32 @@ export function PostHeader({ post }: PostHeaderProps) {
   // SSR fetch doesn't send user cookies, so re-fetch like/bookmark state client-side
   const [liked, setLiked] = useState(post.is_liked ?? false);
   const [bookmarked, setBookmarked] = useState(post.is_bookmarked ?? false);
+  const [authorFollowing, setAuthorFollowing] = useState(
+    post.author?.is_following ?? false
+  );
 
   useEffect(() => {
     // Wait for AuthProvider to finish (and potentially refresh the token)
     // before re-fetching, otherwise OptionalAuth silently ignores expired tokens
     if (authLoading || !user) return;
 
-    api
-      .getSilent<Post>(`/posts/${post.slug}`)
-      .then((p) => {
+    const followStatePromise = post.author
+      ? api.getSilent<User>(`/users/${post.author.username}`)
+      : Promise.resolve(null);
+
+    Promise.all([
+      api.getSilent<Post>(`/posts/${post.slug}`),
+      followStatePromise,
+    ])
+      .then(([p, author]) => {
         if (p.is_liked !== undefined) setLiked(p.is_liked);
         if (p.is_bookmarked !== undefined) setBookmarked(p.is_bookmarked);
+        if (author?.is_following !== undefined) {
+          setAuthorFollowing(author.is_following);
+        }
       })
       .catch(() => {});
-  }, [post.slug, user, authLoading]);
+  }, [post.slug, post.author, user, authLoading]);
   const publishDate = post.published_at
     ? new Date(post.published_at).toLocaleDateString("en-US", {
         year: "numeric",
@@ -63,11 +77,11 @@ export function PostHeader({ post }: PostHeaderProps) {
         <p className="text-lg text-muted-foreground">{post.subtitle}</p>
       )}
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-start justify-between gap-3">
         {post.author && (
           <Link
             href={`/author/${post.author.username}`}
-            className="flex items-center gap-2"
+            className="min-w-0 flex items-center gap-2"
           >
             <Avatar className="h-8 w-8">
               {post.author.avatar_url && (
@@ -79,8 +93,8 @@ export function PostHeader({ post }: PostHeaderProps) {
                   "U"}
               </AvatarFallback>
             </Avatar>
-            <div className="flex flex-col">
-              <span className="text-sm font-medium">
+            <div className="flex min-w-0 flex-col">
+              <span className="truncate text-sm font-medium">
                 {post.author.display_name || post.author.username}
               </span>
               <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -90,6 +104,18 @@ export function PostHeader({ post }: PostHeaderProps) {
               </span>
             </div>
           </Link>
+        )}
+        {!authLoading && !user && post.author && (
+          <Button asChild variant="outline" size="sm">
+            <Link href="/login">Follow</Link>
+          </Button>
+        )}
+        {user && post.author && user.id !== post.author.id && (
+          <FollowButton
+            username={post.author.username}
+            initialFollowing={authorFollowing}
+            onToggle={setAuthorFollowing}
+          />
         )}
       </div>
 

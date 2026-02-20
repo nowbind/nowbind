@@ -159,11 +159,11 @@ export function PostContent({ content, contentJSON, contentFormat }: PostContent
     return null;
   }, [contentJSON, contentFormat]);
 
-  const safeTiptapHTML = useMemo(() => {
+  const renderedTiptapHTML = useMemo(() => {
     if (!tiptapHTML) return null;
 
-    // Avoid server-side crashes from window/document access in client components.
-    if (typeof window === "undefined") {
+    // Keep server HTML and initial client HTML identical to avoid hydration mismatches.
+    if (!mounted || typeof window === "undefined") {
       return tiptapHTML;
     }
 
@@ -195,14 +195,15 @@ export function PostContent({ content, contentJSON, contentFormat }: PostContent
     });
 
     return div.innerHTML;
-  }, [tiptapHTML]);
+  }, [tiptapHTML, mounted]);
 
-  if (safeTiptapHTML) {
+  if (renderedTiptapHTML) {
     return (
       <div
         className="tiptap-content"
         ref={(el) => { contentRef.current = el; addHeadingIds(el); }}
-        dangerouslySetInnerHTML={{ __html: safeTiptapHTML }}
+        suppressHydrationWarning
+        dangerouslySetInnerHTML={{ __html: renderedTiptapHTML }}
       />
     );
   }

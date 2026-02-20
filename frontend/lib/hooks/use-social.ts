@@ -21,9 +21,11 @@ export function useFollow(initialFollowing: boolean = false) {
           await api.post(`/users/${username}/follow`);
           toast.success("Following!");
         }
+        return true;
       } catch {
         setIsFollowing(prev); // revert
         toast.error("Action failed");
+        return false;
       } finally {
         setLoading(false);
       }
