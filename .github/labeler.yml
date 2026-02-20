@@ -1,0 +1,42 @@
+"area:backend":
+  - changed-files:
+    - any-glob-to-any-file: "backend/**"
+
+"area:frontend":
+  - changed-files:
+    - any-glob-to-any-file: "frontend/**"
+
+"area:editor":
+  - changed-files:
+    - any-glob-to-any-file: "frontend/components/editor/**"
+
+"area:api":
+  - changed-files:
+    - any-glob-to-any-file: "backend/internal/handler/**"
+    - any-glob-to-any-file: "backend/internal/router/**"
+
+"area:mcp":
+  - changed-files:
+    - any-glob-to-any-file: "backend/internal/mcp/**"
+
+"area:auth":
+  - changed-files:
+    - any-glob-to-any-file: "backend/internal/handler/auth.go"
+    - any-glob-to-any-file: "backend/internal/service/auth.go"
+    - any-glob-to-any-file: "backend/internal/middleware/auth.go"
+
+"area:pwa":
+  - changed-files:
+    - any-glob-to-any-file: "frontend/components/pwa/**"
+    - any-glob-to-any-file: "frontend/app/sw.ts"
+
+"area:analytics":
+  - changed-files:
+    - any-glob-to-any-file: "backend/internal/handler/analytics.go"
+    - any-glob-to-any-file: "backend/internal/repository/analytics.go"
+
+"documentation":
+  - changed-files:
+    - any-glob-to-any-file: "*.md"
+    - any-glob-to-any-file: "docs/**"
+    - any-glob-to-any-file: ".github/**/*.md"

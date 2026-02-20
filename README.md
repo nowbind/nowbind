@@ -47,6 +47,16 @@ Your blog becomes a knowledge base that both people and AI can read, search, and
 
 **SEO** -- Open Graph, Twitter Cards, JSON-LD, canonical URLs, dynamic sitemap, robots.txt.
 
+## Why Switch from Medium to NowBind?
+
+- **Own your stack**: self-hostable codebase, open data model, no platform lock-in.
+- **Own your content**: import Medium exports and publish from your own domain and database.
+- **AI-native publishing**: every post is readable for humans and consumable by agents via MCP, Agent API, and `llms.txt`.
+- **Extensible by design**: OSS roadmap, public issues/discussions, and contributor-friendly architecture.
+
+Migration guide: [`docs/launch/migrate-from-medium.md`](docs/launch/migrate-from-medium.md)  
+In-app migration page: `/docs/migrate`
+
 ## Tech Stack
 
 | | Backend | Frontend |
@@ -62,7 +72,7 @@ Your blog becomes a knowledge base that both people and AI can read, search, and
 
 ### Prerequisites
 
-- Go 1.25+, Node.js 20+, PostgreSQL 15+ (or Docker)
+- Go 1.25+, Node.js 20+, PostgreSQL 15+ (running on your host)
 
 ### 1. Clone & set up
 
@@ -71,11 +81,10 @@ git clone https://github.com/nowbind/nowbind.git
 cd nowbind
 ```
 
-### 2. Start the database
+### 2. Start PostgreSQL locally
 
-```bash
-docker compose up -d postgres
-```
+Make sure your host Postgres service is running and accessible on port `5432`.
+NowBind does not manage Postgres as a Docker service in this repo.
 
 ### 3. Run the backend
 
@@ -106,7 +115,7 @@ BACKEND_URL=http://localhost:8080
 npm run dev
 ```
 
-Or use `make dev` from the project root to start everything at once.
+Or use `make dev` from the project root to run backend + frontend once Postgres is already running.
 
 ## Environment Variables
 
@@ -346,10 +355,10 @@ Neon databases are auto-detected and configured with appropriate pooling.
 ## Development
 
 ```bash
-make dev              # Start everything (db + backend + frontend)
+make dev              # Start backend + frontend (requires local Postgres)
 make dev-backend      # Go backend
 make dev-frontend     # Next.js dev server
-make db               # Start PostgreSQL via Docker
+make db               # Reminder: Postgres is host-managed
 make migrate          # Run migrations
 make build-backend    # Build Go binary
 make build-frontend   # Build Next.js

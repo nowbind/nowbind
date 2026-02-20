@@ -10,6 +10,7 @@ const withSerwist = withSerwistInit({
 });
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   reactCompiler: true,
   turbopack: {},
   async rewrites() {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useCallback, useState, useEffect } from "react";
-import { EditorRoot, EditorContent, ImageResizer, type JSONContent, type EditorInstance } from "novel";
+import { EditorRoot, EditorContent, ImageResizer, type JSONContent } from "novel";
 import { defaultExtensions } from "./extensions";
 import { EditorBubbleMenu } from "./bubble-menu";
 import { EditorToolbar } from "./editor-toolbar";

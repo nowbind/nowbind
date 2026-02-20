@@ -104,12 +104,6 @@ export function useAutosave({ interval = 30_000, onSave }: UseAutosaveOptions) {
 
   // Intercept browser back/forward button (popstate) for SPA navigation
   useEffect(() => {
-    // Push a duplicate entry so we can intercept the back button
-    const pushGuard = () => {
-      if (dirtyRef.current) {
-        window.history.pushState(null, "", window.location.href);
-      }
-    };
     const handlePopState = () => {
       if (dirtyRef.current) {
         const leave = window.confirm(

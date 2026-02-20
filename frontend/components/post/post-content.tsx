@@ -12,8 +12,6 @@ import { generateHTML } from "@tiptap/html";
 import { Extension } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import TiptapImage from "@tiptap/extension-image";
-import TiptapLink from "@tiptap/extension-link";
-import TiptapUnderline from "@tiptap/extension-underline";
 import { TextStyle } from "@tiptap/extension-text-style";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import HorizontalRule from "@tiptap/extension-horizontal-rule";
@@ -95,8 +93,6 @@ const YoutubeResizeRender = Extension.create({
 const tiptapExtensions = [
   StarterKit.configure({ codeBlock: false, horizontalRule: false }),
   TiptapImage,
-  TiptapLink,
-  TiptapUnderline,
   TextStyle,
   FontSizeRender,
   ImageAlignRender,
@@ -163,40 +159,50 @@ export function PostContent({ content, contentJSON, contentFormat }: PostContent
     return null;
   }, [contentJSON, contentFormat]);
 
-  if (tiptapHTML) {
+  const safeTiptapHTML = useMemo(() => {
+    if (!tiptapHTML) return null;
+
+    // Avoid server-side crashes from window/document access in client components.
+    if (typeof window === "undefined") {
+      return tiptapHTML;
+    }
+
+    const purify = createDOMPurify(window);
+    const clean = purify.sanitize(tiptapHTML, {
+      ADD_TAGS: ["iframe"],
+      ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "src", "sandbox", "loading"],
+      ALLOWED_URI_REGEXP: /^(?:(?:https?):\/\/|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
+    });
+
+    const div = window.document.createElement("div");
+    div.innerHTML = clean;
+    div.querySelectorAll("iframe").forEach((iframe) => {
+      const src = iframe.getAttribute("src") || "";
+      const allowedDomains = [
+        "youtube.com", "www.youtube.com", "youtube-nocookie.com", "www.youtube-nocookie.com",
+        "twitter.com", "x.com", "platform.twitter.com",
+        "codepen.io",
+        "gist.github.com",
+      ];
+      try {
+        const url = new URL(src);
+        if (!allowedDomains.some((d) => url.hostname === d || url.hostname.endsWith("." + d))) {
+          iframe.remove();
+        }
+      } catch {
+        iframe.remove();
+      }
+    });
+
+    return div.innerHTML;
+  }, [tiptapHTML]);
+
+  if (safeTiptapHTML) {
     return (
       <div
         className="tiptap-content"
         ref={(el) => { contentRef.current = el; addHeadingIds(el); }}
-        dangerouslySetInnerHTML={{ __html: (() => {
-          const purify = createDOMPurify(window);
-          const clean = purify.sanitize(tiptapHTML, {
-            ADD_TAGS: ["iframe"],
-            ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "src", "sandbox", "loading"],
-            ALLOWED_URI_REGEXP: /^(?:(?:https?):\/\/|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
-          });
-          // Post-process: validate iframe src against whitelist
-          const div = document.createElement("div");
-          div.innerHTML = clean;
-          div.querySelectorAll("iframe").forEach((iframe) => {
-            const src = iframe.getAttribute("src") || "";
-            const allowedDomains = [
-              "youtube.com", "www.youtube.com", "youtube-nocookie.com", "www.youtube-nocookie.com",
-              "twitter.com", "x.com", "platform.twitter.com",
-              "codepen.io",
-              "gist.github.com",
-            ];
-            try {
-              const url = new URL(src);
-              if (!allowedDomains.some((d) => url.hostname === d || url.hostname.endsWith("." + d))) {
-                iframe.remove();
-              }
-            } catch {
-              iframe.remove();
-            }
-          });
-          return div.innerHTML;
-        })() }}
+        dangerouslySetInnerHTML={{ __html: safeTiptapHTML }}
       />
     );
   }

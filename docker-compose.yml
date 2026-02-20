@@ -1,19 +1,64 @@
 services:
-  postgres:
-    image: postgres:16-alpine
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: nowbind-backend
     environment:
-      POSTGRES_USER: nowbind
-      POSTGRES_PASSWORD: nowbind_dev
-      POSTGRES_DB: nowbind
+      PORT: "8080"
+      DB_MODE: "local"
+      # Use a host-managed Postgres instance (not a Docker service).
+      DATABASE_URL: ${DATABASE_URL:-postgres://nowbind:nowbind_dev@host.docker.internal:5432/nowbind?sslmode=disable}
+      FRONTEND_URL: http://localhost:3000
+      ENVIRONMENT: development
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me-in-production}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      EMAIL_SENDER: ${EMAIL_SENDER:-}
+      GMAIL_CLIENT_ID: ${GMAIL_CLIENT_ID:-}
+      GMAIL_CLIENT_SECRET: ${GMAIL_CLIENT_SECRET:-}
+      GMAIL_REFRESH_TOKEN: ${GMAIL_REFRESH_TOKEN:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      R2_ACCOUNT_ID: ${R2_ACCOUNT_ID:-}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
+      R2_SECRET_KEY: ${R2_SECRET_KEY:-}
+      R2_BUCKET_NAME: ${R2_BUCKET_NAME:-}
+      R2_PUBLIC_URL: ${R2_PUBLIC_URL:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
+      - "8080:8080"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nowbind"]
-      interval: 5s
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health >/dev/null || exit 1"]
+      interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+    restart: unless-stopped
 
-volumes:
-  pgdata:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: nowbind-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080/api/v1
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      BACKEND_URL: http://backend:8080
+      NODE_ENV: production
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000 >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped

@@ -6,9 +6,7 @@ export PATH := $(shell brew --prefix 2>/dev/null)/bin:$(PATH)
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-dev: ## Start all services (db + backend + frontend)
-	@$(MAKE) db
-	@sleep 2
+dev: ## Start backend + frontend (expects Postgres already running locally)
 	@$(MAKE) migrate
 	@$(MAKE) dev-backend &
 	@$(MAKE) dev-frontend
@@ -19,8 +17,8 @@ dev-backend: ## Start Go backend with hot reload
 dev-frontend: ## Start Next.js dev server
 	cd frontend && npm run dev
 
-db: ## Start PostgreSQL via Docker
-	docker compose up -d postgres
+db: ## Postgres is intentionally external (host-managed)
+	@echo "Postgres is not managed by Docker Compose in this repo. Start your local Postgres service."
 
 db-down: ## Stop PostgreSQL
 	docker compose down

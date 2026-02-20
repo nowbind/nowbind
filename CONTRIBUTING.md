@@ -11,8 +11,8 @@ Thanks for your interest in contributing to NowBind! This document outlines the 
 ## Development Setup
 
 ```bash
-# Start the database
-docker compose up -d postgres
+# Start PostgreSQL locally (host-managed, not Docker in this repo)
+# Example: brew services start postgresql@16
 
 # Backend (Go)
 cd backend
@@ -28,7 +28,13 @@ cp .env.example .env.local   # configure your env
 npm run dev
 ```
 
-Or use `make dev` from the project root to start everything.
+## Quick First Contribution
+
+1. Pick an issue labeled `good first issue` or `help wanted`.
+2. Create a small, focused branch from `main`.
+3. Keep your PR scoped to one bug fix or one enhancement.
+4. Run `npm run lint` (frontend) and `go test ./...` (backend).
+5. Link the issue in your PR description (`Fixes #123`).
 
 ## What to Contribute
 
