@@ -53,6 +53,21 @@ function savePrefs(prefs: ReadingPrefs) {
   } catch {}
 }
 
+async function requestFullscreenMode() {
+  const root = document.documentElement;
+  if (document.fullscreenElement || !root.requestFullscreen) return;
+  try {
+    await root.requestFullscreen();
+  } catch {}
+}
+
+async function exitFullscreenMode() {
+  if (!document.fullscreenElement || !document.exitFullscreen) return;
+  try {
+    await document.exitFullscreen();
+  } catch {}
+}
+
 export function ReadingToolbar() {
   const [prefs, setPrefs] = useState<ReadingPrefs>({ fontFamily: "default", fontSize: "md" });
   const [focusMode, setFocusMode] = useState(false);
@@ -104,11 +119,26 @@ export function ReadingToolbar() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setFocusMode(false);
+        setOpen(false);
+        void exitFullscreenMode();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [focusMode]);
+
+  // Keep focus mode state in sync if user exits browser fullscreen externally.
+  useEffect(() => {
+    if (!mounted) return;
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        setFocusMode(false);
+      }
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, [mounted]);
 
   // Close panel when clicking outside
   useEffect(() => {
@@ -125,6 +155,18 @@ export function ReadingToolbar() {
   const updatePrefs = useCallback((patch: Partial<ReadingPrefs>) => {
     setPrefs((prev) => ({ ...prev, ...patch }));
   }, []);
+
+  const toggleFocusMode = useCallback(async () => {
+    const next = !focusMode;
+    setFocusMode(next);
+    setOpen(false);
+
+    if (next) {
+      await requestFullscreenMode();
+    } else {
+      await exitFullscreenMode();
+    }
+  }, [focusMode]);
 
   if (!mounted) return null;
 
@@ -193,10 +235,7 @@ export function ReadingToolbar() {
 
           {/* Focus mode */}
           <button
-            onClick={() => {
-              setFocusMode(!focusMode);
-              setOpen(false);
-            }}
+            onClick={() => void toggleFocusMode()}
             className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
             {focusMode ? (
@@ -204,7 +243,7 @@ export function ReadingToolbar() {
             ) : (
               <Maximize className="h-3.5 w-3.5" />
             )}
-            {focusMode ? "Exit Focus Mode" : "Focus Mode"}
+            {focusMode ? "Exit Full Mode" : "Enter Full Mode"}
             <span className="ml-auto text-[10px] text-muted-foreground/60">Esc</span>
           </button>
         </div>

@@ -1,13 +1,45 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const footerLinks = [
+  { href: "/docs", label: "Docs" },
   { href: "/terms", label: "Terms" },
   { href: "/privacy", label: "Privacy" },
   { href: "/feed/rss.xml", label: "RSS" },
   { href: "/llms.txt", label: "llms.txt" },
 ] as const;
 
+const hiddenPrefixes = [
+  "/post/",
+  "/feed",
+  "/dashboard",
+  "/editor",
+  "/api-keys",
+  "/settings",
+  "/stats",
+  "/profile",
+  "/reading-list",
+  "/liked",
+  "/notifications",
+  "/import",
+  "/login",
+  "/callback",
+] as const;
+
 export function Footer() {
+  const pathname = usePathname();
+
+  if (
+    pathname &&
+    hiddenPrefixes.some(
+      (prefix) => pathname === prefix || pathname.startsWith(prefix)
+    )
+  ) {
+    return null;
+  }
+
   return (
     <footer className="border-t">
       <div className="mx-auto max-w-5xl px-4 py-6">

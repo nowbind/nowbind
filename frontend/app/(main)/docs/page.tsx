@@ -5,7 +5,7 @@ import { Footer } from "@/components/layout/footer";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
-import { Copy, Check, Key, Bot, Zap, BookOpen, Server, Terminal } from "lucide-react";
+import { Copy, Check, Key, Bot, BookOpen, Server, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://nowbind.com";
@@ -65,9 +65,6 @@ export default function DocsPage() {
     { id: "getting-started", label: "Getting Started" },
     { id: "authentication", label: "Authentication" },
     { id: "agent-api", label: "Agent API" },
-    { id: "social-api", label: "Social API" },
-    { id: "notifications-api", label: "Notifications" },
-    { id: "analytics-api", label: "Analytics" },
     { id: "mcp-server", label: "MCP Server" },
     { id: "rate-limits", label: "Rate Limits" },
   ];
@@ -242,75 +239,6 @@ Full markdown content...`}</CodeBlock>
     }
   ]
 }`}</CodeBlock>
-            </section>
-
-            {/* Social API */}
-            <section id="social-api" className="space-y-4 scroll-mt-20">
-              <div className="flex items-center gap-2">
-                <Zap className="h-5 w-5 text-primary" />
-                <h2 className="text-2xl font-bold">Social API</h2>
-              </div>
-              <p className="text-muted-foreground">
-                Follow authors, like and bookmark posts, and manage comments. These require JWT authentication.
-              </p>
-
-              <h3 className="text-lg font-semibold">Follows</h3>
-              <div className="space-y-2">
-                <Endpoint method="POST" path="/api/v1/users/{username}/follow" auth="JWT" />
-                <Endpoint method="DELETE" path="/api/v1/users/{username}/follow" auth="JWT" />
-                <Endpoint method="GET" path="/api/v1/users/{username}/followers" auth="Public" />
-                <Endpoint method="GET" path="/api/v1/users/{username}/following" auth="Public" />
-                <Endpoint method="GET" path="/api/v1/feed" auth="JWT" />
-              </div>
-
-              <h3 className="mt-4 text-lg font-semibold">Likes &amp; Bookmarks</h3>
-              <div className="space-y-2">
-                <Endpoint method="POST" path="/api/v1/posts/{id}/like" auth="JWT" />
-                <Endpoint method="DELETE" path="/api/v1/posts/{id}/like" auth="JWT" />
-                <Endpoint method="POST" path="/api/v1/posts/{id}/bookmark" auth="JWT" />
-                <Endpoint method="DELETE" path="/api/v1/posts/{id}/bookmark" auth="JWT" />
-                <Endpoint method="GET" path="/api/v1/users/me/liked" auth="JWT" />
-                <Endpoint method="GET" path="/api/v1/users/me/bookmarks" auth="JWT" />
-              </div>
-
-              <h3 className="mt-4 text-lg font-semibold">Comments</h3>
-              <div className="space-y-2">
-                <Endpoint method="GET" path="/api/v1/posts/{id}/comments" auth="Public" />
-                <Endpoint method="POST" path="/api/v1/posts/{id}/comments" auth="JWT" />
-                <Endpoint method="PUT" path="/api/v1/comments/{id}" auth="JWT" />
-                <Endpoint method="DELETE" path="/api/v1/comments/{id}" auth="JWT" />
-              </div>
-            </section>
-
-            {/* Notifications API */}
-            <section id="notifications-api" className="space-y-4 scroll-mt-20">
-              <h2 className="text-2xl font-bold">Notifications API</h2>
-              <div className="space-y-2">
-                <Endpoint method="GET" path="/api/v1/notifications" auth="JWT" />
-                <Endpoint method="GET" path="/api/v1/notifications/unread-count" auth="JWT" />
-                <Endpoint method="POST" path="/api/v1/notifications/{id}/read" auth="JWT" />
-                <Endpoint method="POST" path="/api/v1/notifications/read-all" auth="JWT" />
-                <Endpoint method="GET" path="/api/v1/notifications/vapid-key" auth="Public" />
-                <Endpoint method="POST" path="/api/v1/notifications/subscribe" auth="JWT" />
-                <Endpoint method="POST" path="/api/v1/notifications/unsubscribe" auth="JWT" />
-                <Endpoint method="GET" path="/api/v1/notifications/preferences" auth="JWT" />
-                <Endpoint method="PUT" path="/api/v1/notifications/preferences" auth="JWT" />
-              </div>
-            </section>
-
-            {/* Analytics API */}
-            <section id="analytics-api" className="space-y-4 scroll-mt-20">
-              <h2 className="text-2xl font-bold">Analytics API</h2>
-              <p className="text-muted-foreground">
-                Track views and get insights on your content. Distinguishes between human and AI agent views.
-              </p>
-              <div className="space-y-2">
-                <Endpoint method="POST" path="/api/v1/posts/{slug}/view" auth="Public" />
-                <Endpoint method="GET" path="/api/v1/stats/overview" auth="JWT" />
-                <Endpoint method="GET" path="/api/v1/stats/timeline?days=30" auth="JWT" />
-                <Endpoint method="GET" path="/api/v1/stats/top-posts?days=30" auth="JWT" />
-                <Endpoint method="GET" path="/api/v1/stats/referrers?days=30" auth="JWT" />
-              </div>
             </section>
 
             {/* MCP Server */}

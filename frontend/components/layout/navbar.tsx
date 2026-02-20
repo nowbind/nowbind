@@ -47,6 +47,12 @@ export function Navbar() {
             >
               Search
             </Link>
+            <Link
+              href="/docs"
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Docs
+            </Link>
           </nav>
         </div>
 
@@ -172,6 +178,13 @@ export function Navbar() {
               onClick={() => setMobileOpen(false)}
             >
               Search
+            </Link>
+            <Link
+              href="/docs"
+              className="rounded-md px-3 py-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              onClick={() => setMobileOpen(false)}
+            >
+              Docs
             </Link>
             {user && (
               <Link
