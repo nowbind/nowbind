@@ -167,17 +167,20 @@ export default function HomePage() {
                 <div className="mt-6 overflow-hidden rounded-lg border bg-muted/30">
                   <div className="flex items-center gap-2 border-b px-4 py-2.5 text-xs text-muted-foreground">
                     <span className="h-2 w-2 rounded-full bg-emerald-500/70" />
-                    GET /api/v1/agent/posts/your-post
+                    GET /api/v1/agent/posts/your-post-slug
                   </div>
                   <pre className="overflow-x-auto p-4 text-xs leading-relaxed text-muted-foreground">
-                    {`{
-  "title": "Your Post Title",
-  "content_markdown": "# Full structured...",
-  "ai_summary": "Auto-generated summary",
-  "ai_keywords": ["topic", "guide"],
-  "reading_time": 5,
-  "mcp_endpoint": "/mcp"
-}`}
+                    {`# Your Post Title
+
+*Optional subtitle*
+
+**Author:** Your Name
+**Reading Time:** 5 min
+**Keywords:** topic, guide
+
+---
+
+Full markdown content...`}
                   </pre>
                 </div>
                 <p className="mt-4 text-sm text-muted-foreground">

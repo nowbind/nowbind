@@ -154,6 +154,7 @@ export function BlockEditor({
         <EditorContent
           extensions={defaultExtensions as any}
           initialContent={initialContent}
+          immediatelyRender={false}
           className="prose-editor min-h-[500px]"
           onUpdate={({ editor }) => {
             onChange?.(editor.getJSON());

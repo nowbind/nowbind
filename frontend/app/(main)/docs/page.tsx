@@ -189,55 +189,58 @@ export default function DocsPage() {
                 <Endpoint method="GET" path="/api/v1/agent/posts" auth="API Key" />
                 <Endpoint method="GET" path="/api/v1/agent/posts/{slug}" auth="API Key" />
                 <Endpoint method="GET" path="/api/v1/agent/search?q={query}" auth="API Key" />
+                <Endpoint method="GET" path="/api/v1/agent/authors" auth="API Key" />
                 <Endpoint method="GET" path="/api/v1/agent/tags" auth="API Key" />
               </div>
 
               <h3 className="text-lg font-semibold">List Posts</h3>
-              <CodeBlock label="GET /api/v1/agent/posts?page=1&per_page=10">{`{
-  "data": [
-    {
-      "id": "uuid",
-      "title": "My Post",
-      "slug": "my-post",
-      "excerpt": "Brief summary...",
-      "ai_summary": "AI-generated summary...",
-      "ai_keywords": ["keyword1", "keyword2"],
-      "structured_md": "# My Post\\n...",
-      "reading_time": 5,
-      "published_at": "2025-01-01T00:00:00Z",
-      "tags": [{ "name": "go", "slug": "go" }],
-      "author": { "username": "alice", "display_name": "Alice" }
-    }
-  ],
-  "total": 42,
-  "page": 1,
-  "per_page": 10,
-  "total_pages": 5
-}`}</CodeBlock>
+              <CodeBlock label="GET /api/v1/agent/posts">{`[
+  {
+    "slug": "my-post",
+    "title": "My Post",
+    "subtitle": "Optional subtitle",
+    "author": "Alice",
+    "excerpt": "Brief summary...",
+    "reading_time": 5,
+    "published_at": "2025-01-01T00:00:00Z",
+    "tags": ["go", "backend"],
+    "keywords": ["keyword1", "keyword2"],
+    "url": "${siteUrl}/post/my-post",
+    "content_url": "${siteUrl}/api/v1/agent/posts/my-post"
+  }
+]`}</CodeBlock>
 
               <h3 className="text-lg font-semibold">Get Post</h3>
               <p className="text-sm text-muted-foreground">
-                Returns the full post including <code className="rounded bg-muted px-1.5 py-0.5 text-xs">structured_md</code> for LLM consumption.
+                Returns structured markdown as plain text with <code className="rounded bg-muted px-1.5 py-0.5 text-xs">Content-Type: text/markdown</code>.
               </p>
-              <CodeBlock label="GET /api/v1/agent/posts/{slug}">{`{
-  "title": "My Post",
-  "slug": "my-post",
-  "content": "Full markdown content...",
-  "structured_md": "---\\ntitle: My Post\\n---\\n# My Post\\n...",
-  "ai_summary": "...",
-  "ai_keywords": ["keyword1"],
-  "reading_time": 5,
-  "author": { "username": "alice" }
-}`}</CodeBlock>
+              <CodeBlock label="GET /api/v1/agent/posts/{slug}">{`# My Post
+
+*Optional subtitle*
+
+**Author:** Alice
+**Reading Time:** 5 min
+**Keywords:** keyword1, keyword2
+
+---
+
+Full markdown content...`}</CodeBlock>
 
               <h3 className="text-lg font-semibold">Search Posts</h3>
               <p className="text-sm text-muted-foreground">
                 Full-text search across titles, content, and AI-generated summaries using PostgreSQL&apos;s tsvector.
               </p>
               <CodeBlock label="GET /api/v1/agent/search?q=kubernetes">{`{
-  "posts": [...],
+  "query": "kubernetes",
   "total": 12,
-  "query": "kubernetes"
+  "results": [
+    {
+      "slug": "kubernetes-guide",
+      "title": "Kubernetes Guide",
+      "excerpt": "Production-ready Kubernetes setup...",
+      "url": "${siteUrl}/post/kubernetes-guide"
+    }
+  ]
 }`}</CodeBlock>
             </section>
 
