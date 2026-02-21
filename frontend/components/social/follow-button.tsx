@@ -3,20 +3,32 @@
 import { Button } from "@/components/ui/button";
 import { useFollow } from "@/lib/hooks/use-social";
 import { UserPlus, UserCheck } from "lucide-react";
+import { useEffect } from "react";
 
 interface FollowButtonProps {
   username: string;
   initialFollowing?: boolean;
+  onToggle?: (nowFollowing: boolean) => void;
 }
 
-export function FollowButton({ username, initialFollowing = false }: FollowButtonProps) {
-  const { isFollowing, toggle, loading } = useFollow(initialFollowing);
+export function FollowButton({ username, initialFollowing = false, onToggle }: FollowButtonProps) {
+  const { isFollowing, toggle, loading, setIsFollowing } = useFollow(initialFollowing);
+
+  useEffect(() => {
+    setIsFollowing(initialFollowing);
+  }, [initialFollowing, setIsFollowing]);
 
   return (
     <Button
       variant={isFollowing ? "outline" : "default"}
       size="sm"
-      onClick={() => toggle(username)}
+      onClick={async () => {
+        const next = !isFollowing;
+        const ok = await toggle(username);
+        if (ok) {
+          onToggle?.(next);
+        }
+      }}
       disabled={loading}
     >
       {isFollowing ? (

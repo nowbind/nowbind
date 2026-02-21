@@ -5,7 +5,7 @@ import { Footer } from "@/components/layout/footer";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
-import { Copy, Check, Key, Bot, Zap, BookOpen, Server, Terminal } from "lucide-react";
+import { Copy, Check, Key, Bot, BookOpen, Server, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://nowbind.com";
@@ -65,9 +65,6 @@ export default function DocsPage() {
     { id: "getting-started", label: "Getting Started" },
     { id: "authentication", label: "Authentication" },
     { id: "agent-api", label: "Agent API" },
-    { id: "social-api", label: "Social API" },
-    { id: "notifications-api", label: "Notifications" },
-    { id: "analytics-api", label: "Analytics" },
     { id: "mcp-server", label: "MCP Server" },
     { id: "rate-limits", label: "Rate Limits" },
   ];
@@ -189,125 +186,59 @@ export default function DocsPage() {
                 <Endpoint method="GET" path="/api/v1/agent/posts" auth="API Key" />
                 <Endpoint method="GET" path="/api/v1/agent/posts/{slug}" auth="API Key" />
                 <Endpoint method="GET" path="/api/v1/agent/search?q={query}" auth="API Key" />
+                <Endpoint method="GET" path="/api/v1/agent/authors" auth="API Key" />
                 <Endpoint method="GET" path="/api/v1/agent/tags" auth="API Key" />
               </div>
 
               <h3 className="text-lg font-semibold">List Posts</h3>
-              <CodeBlock label="GET /api/v1/agent/posts?page=1&per_page=10">{`{
-  "data": [
-    {
-      "id": "uuid",
-      "title": "My Post",
-      "slug": "my-post",
-      "excerpt": "Brief summary...",
-      "ai_summary": "AI-generated summary...",
-      "ai_keywords": ["keyword1", "keyword2"],
-      "structured_md": "# My Post\\n...",
-      "reading_time": 5,
-      "published_at": "2025-01-01T00:00:00Z",
-      "tags": [{ "name": "go", "slug": "go" }],
-      "author": { "username": "alice", "display_name": "Alice" }
-    }
-  ],
-  "total": 42,
-  "page": 1,
-  "per_page": 10,
-  "total_pages": 5
-}`}</CodeBlock>
+              <CodeBlock label="GET /api/v1/agent/posts">{`[
+  {
+    "slug": "my-post",
+    "title": "My Post",
+    "subtitle": "Optional subtitle",
+    "author": "Alice",
+    "excerpt": "Brief summary...",
+    "reading_time": 5,
+    "published_at": "2025-01-01T00:00:00Z",
+    "tags": ["go", "backend"],
+    "keywords": ["keyword1", "keyword2"],
+    "url": "${siteUrl}/post/my-post",
+    "content_url": "${siteUrl}/api/v1/agent/posts/my-post"
+  }
+]`}</CodeBlock>
 
               <h3 className="text-lg font-semibold">Get Post</h3>
               <p className="text-sm text-muted-foreground">
-                Returns the full post including <code className="rounded bg-muted px-1.5 py-0.5 text-xs">structured_md</code> for LLM consumption.
+                Returns structured markdown as plain text with <code className="rounded bg-muted px-1.5 py-0.5 text-xs">Content-Type: text/markdown</code>.
               </p>
-              <CodeBlock label="GET /api/v1/agent/posts/{slug}">{`{
-  "title": "My Post",
-  "slug": "my-post",
-  "content": "Full markdown content...",
-  "structured_md": "---\\ntitle: My Post\\n---\\n# My Post\\n...",
-  "ai_summary": "...",
-  "ai_keywords": ["keyword1"],
-  "reading_time": 5,
-  "author": { "username": "alice" }
-}`}</CodeBlock>
+              <CodeBlock label="GET /api/v1/agent/posts/{slug}">{`# My Post
+
+*Optional subtitle*
+
+**Author:** Alice
+**Reading Time:** 5 min
+**Keywords:** keyword1, keyword2
+
+---
+
+Full markdown content...`}</CodeBlock>
 
               <h3 className="text-lg font-semibold">Search Posts</h3>
               <p className="text-sm text-muted-foreground">
                 Full-text search across titles, content, and AI-generated summaries using PostgreSQL&apos;s tsvector.
               </p>
               <CodeBlock label="GET /api/v1/agent/search?q=kubernetes">{`{
-  "posts": [...],
+  "query": "kubernetes",
   "total": 12,
-  "query": "kubernetes"
+  "results": [
+    {
+      "slug": "kubernetes-guide",
+      "title": "Kubernetes Guide",
+      "excerpt": "Production-ready Kubernetes setup...",
+      "url": "${siteUrl}/post/kubernetes-guide"
+    }
+  ]
 }`}</CodeBlock>
-            </section>
-
-            {/* Social API */}
-            <section id="social-api" className="space-y-4 scroll-mt-20">
-              <div className="flex items-center gap-2">
-                <Zap className="h-5 w-5 text-primary" />
-                <h2 className="text-2xl font-bold">Social API</h2>
-              </div>
-              <p className="text-muted-foreground">
-                Follow authors, like and bookmark posts, and manage comments. These require JWT authentication.
-              </p>
-
-              <h3 className="text-lg font-semibold">Follows</h3>
-              <div className="space-y-2">
-                <Endpoint method="POST" path="/api/v1/users/{username}/follow" auth="JWT" />
-                <Endpoint method="DELETE" path="/api/v1/users/{username}/follow" auth="JWT" />
-                <Endpoint method="GET" path="/api/v1/users/{username}/followers" auth="Public" />
-                <Endpoint method="GET" path="/api/v1/users/{username}/following" auth="Public" />
-                <Endpoint method="GET" path="/api/v1/feed" auth="JWT" />
-              </div>
-
-              <h3 className="mt-4 text-lg font-semibold">Likes &amp; Bookmarks</h3>
-              <div className="space-y-2">
-                <Endpoint method="POST" path="/api/v1/posts/{id}/like" auth="JWT" />
-                <Endpoint method="DELETE" path="/api/v1/posts/{id}/like" auth="JWT" />
-                <Endpoint method="POST" path="/api/v1/posts/{id}/bookmark" auth="JWT" />
-                <Endpoint method="DELETE" path="/api/v1/posts/{id}/bookmark" auth="JWT" />
-                <Endpoint method="GET" path="/api/v1/users/me/liked" auth="JWT" />
-                <Endpoint method="GET" path="/api/v1/users/me/bookmarks" auth="JWT" />
-              </div>
-
-              <h3 className="mt-4 text-lg font-semibold">Comments</h3>
-              <div className="space-y-2">
-                <Endpoint method="GET" path="/api/v1/posts/{id}/comments" auth="Public" />
-                <Endpoint method="POST" path="/api/v1/posts/{id}/comments" auth="JWT" />
-                <Endpoint method="PUT" path="/api/v1/comments/{id}" auth="JWT" />
-                <Endpoint method="DELETE" path="/api/v1/comments/{id}" auth="JWT" />
-              </div>
-            </section>
-
-            {/* Notifications API */}
-            <section id="notifications-api" className="space-y-4 scroll-mt-20">
-              <h2 className="text-2xl font-bold">Notifications API</h2>
-              <div className="space-y-2">
-                <Endpoint method="GET" path="/api/v1/notifications" auth="JWT" />
-                <Endpoint method="GET" path="/api/v1/notifications/unread-count" auth="JWT" />
-                <Endpoint method="POST" path="/api/v1/notifications/{id}/read" auth="JWT" />
-                <Endpoint method="POST" path="/api/v1/notifications/read-all" auth="JWT" />
-                <Endpoint method="GET" path="/api/v1/notifications/vapid-key" auth="Public" />
-                <Endpoint method="POST" path="/api/v1/notifications/subscribe" auth="JWT" />
-                <Endpoint method="POST" path="/api/v1/notifications/unsubscribe" auth="JWT" />
-                <Endpoint method="GET" path="/api/v1/notifications/preferences" auth="JWT" />
-                <Endpoint method="PUT" path="/api/v1/notifications/preferences" auth="JWT" />
-              </div>
-            </section>
-
-            {/* Analytics API */}
-            <section id="analytics-api" className="space-y-4 scroll-mt-20">
-              <h2 className="text-2xl font-bold">Analytics API</h2>
-              <p className="text-muted-foreground">
-                Track views and get insights on your content. Distinguishes between human and AI agent views.
-              </p>
-              <div className="space-y-2">
-                <Endpoint method="POST" path="/api/v1/posts/{slug}/view" auth="Public" />
-                <Endpoint method="GET" path="/api/v1/stats/overview" auth="JWT" />
-                <Endpoint method="GET" path="/api/v1/stats/timeline?days=30" auth="JWT" />
-                <Endpoint method="GET" path="/api/v1/stats/top-posts?days=30" auth="JWT" />
-                <Endpoint method="GET" path="/api/v1/stats/referrers?days=30" auth="JWT" />
-              </div>
             </section>
 
             {/* MCP Server */}

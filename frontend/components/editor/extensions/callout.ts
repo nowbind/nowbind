@@ -1,4 +1,6 @@
 import { Node, mergeAttributes } from "@tiptap/core";
+import { ReactNodeViewRenderer } from "@tiptap/react";
+import { CalloutComponent } from "./callout-component";
 
 export interface CalloutOptions {
   HTMLAttributes: Record<string, unknown>;
@@ -35,7 +37,7 @@ export const Callout = Node.create<CalloutOptions>({
   },
 
   parseHTML() {
-    return [{ tag: 'div[data-callout-type]' }];
+    return [{ tag: "div[data-callout-type]" }];
   },
 
   renderHTML({ HTMLAttributes }) {
@@ -49,6 +51,10 @@ export const Callout = Node.create<CalloutOptions>({
     ];
   },
 
+  addNodeView() {
+    return ReactNodeViewRenderer(CalloutComponent);
+  },
+
   addCommands() {
     return {
       setCallout:
@@ -59,6 +65,36 @@ export const Callout = Node.create<CalloutOptions>({
         (attributes) =>
         ({ commands }) =>
           commands.toggleNode(this.name, "paragraph", attributes),
+    };
+  },
+
+  addKeyboardShortcuts() {
+    return {
+      Backspace: () => {
+        const { empty, $anchor } = this.editor.state.selection;
+        const isAtStart = $anchor.pos === $anchor.start();
+        if (!empty || !isAtStart) return false;
+        if ($anchor.parent.type.name !== this.name) return false;
+        return this.editor.commands.toggleNode(this.name, "paragraph");
+      },
+      Enter: () => {
+        const { $from } = this.editor.state.selection;
+        if ($from.parent.type.name !== this.name) return false;
+
+        // Empty callout: convert to paragraph
+        if ($from.parent.textContent === "") {
+          return this.editor.commands.toggleNode(this.name, "paragraph");
+        }
+
+        // Non-empty: insert new paragraph after callout
+        const endPos = $from.after();
+        return this.editor
+          .chain()
+          .insertContentAt(endPos, { type: "paragraph" })
+          .setTextSelection(endPos + 1)
+          .scrollIntoView()
+          .run();
+      },
     };
   },
 });

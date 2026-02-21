@@ -364,12 +364,17 @@ func (h *SocialHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
 		Content  string  `json:"content"`
 		ParentID *string `json:"parent_id,omitempty"`
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB limit
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 	if req.Content == "" {
 		writeError(w, http.StatusBadRequest, "content is required")
+		return
+	}
+	if len(req.Content) > 10000 {
+		writeError(w, http.StatusBadRequest, "comment too long (max 10000 characters)")
 		return
 	}
 
@@ -411,8 +416,13 @@ func (h *SocialHandler) UpdateComment(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Content string `json:"content"`
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB limit
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Content == "" {
 		writeError(w, http.StatusBadRequest, "content is required")
+		return
+	}
+	if len(req.Content) > 10000 {
+		writeError(w, http.StatusBadRequest, "comment too long (max 10000 characters)")
 		return
 	}
 

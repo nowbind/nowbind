@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/hooks/use-auth";
 import type { Post, PaginatedResponse } from "@/lib/types";
-import { ChevronLeft, ChevronRight, Rss } from "lucide-react";
+import { ChevronLeft, ChevronRight, Rss, Keyboard } from "lucide-react";
+import { useKeyboardNav } from "@/lib/hooks/use-keyboard-nav";
+import { KeyboardShortcutsHelp } from "@/components/keyboard-shortcuts-help";
 import Link from "next/link";
 
 export default function FeedPage() {
@@ -35,6 +37,12 @@ export default function FeedPage() {
       .finally(() => setLoading(false));
   }, [page, user, authLoading]);
 
+  const { focusedIndex, showHelp, setShowHelp } = useKeyboardNav({
+    posts,
+    enabled: !authLoading && !!user && !loading,
+    isAuthenticated: !!user,
+  });
+
   if (!authLoading && !user) {
     return (
       <div className="flex min-h-screen flex-col">
@@ -59,10 +67,24 @@ export default function FeedPage() {
       <Navbar />
       <main className="flex-1">
         <div className="mx-auto max-w-3xl px-4 py-8">
-          <h1 className="mb-2 text-2xl font-bold">Your Feed</h1>
-          <p className="mb-6 text-muted-foreground">
-            Posts from authors you follow.
-          </p>
+          <div className="mb-6 flex items-end justify-between">
+            <div>
+              <h1 className="mb-2 text-2xl font-bold">Your Feed</h1>
+              <p className="text-muted-foreground">
+                Posts from authors you follow.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowHelp(true)}
+              className="hidden items-center gap-1.5 rounded-md border px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground sm:flex"
+              title="Keyboard shortcuts"
+            >
+              <Keyboard className="h-3 w-3" />
+              <kbd className="font-mono">?</kbd>
+            </button>
+          </div>
+
+          <KeyboardShortcutsHelp open={showHelp} onOpenChange={setShowHelp} />
 
           {loading ? (
             <div className="space-y-6">
@@ -86,8 +108,13 @@ export default function FeedPage() {
           ) : (
             <>
               <div>
-                {posts.map((post) => (
-                  <PostCard key={post.id} post={post} />
+                {posts.map((post, i) => (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    focused={focusedIndex === i}
+                    data-post-index={i}
+                  />
                 ))}
               </div>
 

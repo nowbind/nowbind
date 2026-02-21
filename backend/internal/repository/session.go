@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"time"
@@ -26,6 +27,9 @@ func (r *SessionRepository) Create(ctx context.Context, userID string) (*model.S
 		return nil, fmt.Errorf("generating refresh token: %w", err)
 	}
 
+	hash := sha256.Sum256([]byte(token))
+	tokenHash := hex.EncodeToString(hash[:])
+
 	session := &model.Session{
 		RefreshToken: token,
 		UserID:       userID,
@@ -34,7 +38,7 @@ func (r *SessionRepository) Create(ctx context.Context, userID string) (*model.S
 
 	_, err = r.pool.Exec(ctx,
 		`INSERT INTO sessions (refresh_token, user_id, expires_at) VALUES ($1, $2, $3)`,
-		session.RefreshToken, session.UserID, session.ExpiresAt,
+		tokenHash, session.UserID, session.ExpiresAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("creating session: %w", err)
@@ -44,10 +48,13 @@ func (r *SessionRepository) Create(ctx context.Context, userID string) (*model.S
 }
 
 func (r *SessionRepository) GetByToken(ctx context.Context, token string) (*model.Session, error) {
+	hash := sha256.Sum256([]byte(token))
+	tokenHash := hex.EncodeToString(hash[:])
+
 	session := &model.Session{}
 	err := r.pool.QueryRow(ctx,
 		`SELECT refresh_token, user_id, expires_at, created_at FROM sessions
-		 WHERE refresh_token = $1 AND expires_at > NOW()`, token,
+		 WHERE refresh_token = $1 AND expires_at > NOW()`, tokenHash,
 	).Scan(&session.RefreshToken, &session.UserID, &session.ExpiresAt, &session.CreatedAt)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -59,7 +66,9 @@ func (r *SessionRepository) GetByToken(ctx context.Context, token string) (*mode
 }
 
 func (r *SessionRepository) Delete(ctx context.Context, token string) error {
-	_, err := r.pool.Exec(ctx, "DELETE FROM sessions WHERE refresh_token = $1", token)
+	hash := sha256.Sum256([]byte(token))
+	tokenHash := hex.EncodeToString(hash[:])
+	_, err := r.pool.Exec(ctx, "DELETE FROM sessions WHERE refresh_token = $1", tokenHash)
 	return err
 }
 

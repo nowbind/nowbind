@@ -2,6 +2,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { AuthorContent } from "./author-content";
 import { API_URL, SITE_URL } from "@/lib/constants";
+import { safeJsonLd } from "@/lib/utils";
 import type { User, Post, PaginatedResponse } from "@/lib/types";
 import type { Metadata } from "next";
 
@@ -90,7 +91,7 @@ export default async function AuthorPage({ params }: Props) {
           <script
             type="application/ld+json"
             dangerouslySetInnerHTML={{
-              __html: JSON.stringify({
+              __html: safeJsonLd({
                 "@context": "https://schema.org",
                 "@type": "Person",
                 name: author.display_name || author.username,

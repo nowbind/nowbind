@@ -24,6 +24,7 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 	r.Use(middleware.Logging)
 	r.Use(chimw.Recoverer)
 	r.Use(middleware.CORS(cfg.FrontendURL))
+	r.Use(middleware.SecurityHeaders)
 	r.Use(middleware.GlobalRateLimit(200)) // 200 req/min per IP
 
 	// Repositories
@@ -65,6 +66,8 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 	notifH := handler.NewNotificationHandler(notifRepo, pushRepo, notifService)
 	analyticsH := handler.NewAnalyticsHandler(analyticsRepo, postRepo)
 	mediaH := handler.NewMediaHandler(mediaService)
+	importService := service.NewImportService(postRepo, tagRepo)
+	importH := handler.NewImportHandler(importService)
 
 	// Health
 	r.Get("/health", healthH.Health)
@@ -75,6 +78,7 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 
 	// API v1
 	r.Route("/api/v1", func(r chi.Router) {
+		r.Use(middleware.MaxBodySize(1 << 20)) // 1MB default body limit
 		// Auth (strict rate limit: 10 req/min per IP)
 		r.Route("/auth", func(r chi.Router) {
 			r.Use(middleware.AuthRateLimit())
@@ -129,6 +133,8 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 				r.Use(middleware.AuthMiddleware(cfg.JWTSecret, pool))
 				r.Put("/me", userH.UpdateMe)
 				r.Get("/me/posts", userH.MyPosts)
+				r.Get("/me/export", userH.ExportData)
+				r.Delete("/me", userH.DeleteAccount)
 				r.Get("/me/liked", socialH.GetLikedPosts)
 				r.Get("/me/bookmarks", socialH.GetBookmarks)
 				r.Post("/{username}/follow", socialH.Follow)
@@ -200,6 +206,13 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 		r.Route("/media", func(r chi.Router) {
 			r.Use(middleware.AuthMiddleware(cfg.JWTSecret, pool))
 			r.Post("/upload", mediaH.Upload)
+		})
+
+		// Import
+		r.Route("/import", func(r chi.Router) {
+			r.Use(middleware.AuthMiddleware(cfg.JWTSecret, pool))
+			r.Use(middleware.MaxBodySize(50 << 20)) // 50MB for ZIP uploads
+			r.Post("/medium", importH.MediumImport)
 		})
 
 		// API Keys

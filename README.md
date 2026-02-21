@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/nowbind/nowbind/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License" /></a>
+  <a href="https://github.com/nowbind/nowbind/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue" alt="License" /></a>
   <img src="https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white" alt="Go" />
   <img src="https://img.shields.io/badge/Next.js-16-000?logo=next.js" alt="Next.js" />
   <img src="https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL" />
@@ -47,6 +47,16 @@ Your blog becomes a knowledge base that both people and AI can read, search, and
 
 **SEO** -- Open Graph, Twitter Cards, JSON-LD, canonical URLs, dynamic sitemap, robots.txt.
 
+## Why Switch from Medium to NowBind?
+
+- **Own your stack**: self-hostable codebase, open data model, no platform lock-in.
+- **Own your content**: import Medium exports and publish from your own domain and database.
+- **AI-native publishing**: every post is readable for humans and consumable by agents via MCP, Agent API, and `llms.txt`.
+- **Extensible by design**: OSS roadmap, public issues/discussions, and contributor-friendly architecture.
+
+Migration guide: [`docs/launch/migrate-from-medium.md`](docs/launch/migrate-from-medium.md)  
+In-app migration page: `/docs/migrate`
+
 ## Tech Stack
 
 | | Backend | Frontend |
@@ -62,7 +72,7 @@ Your blog becomes a knowledge base that both people and AI can read, search, and
 
 ### Prerequisites
 
-- Go 1.25+, Node.js 20+, PostgreSQL 15+ (or Docker)
+- Go 1.25+, Node.js 20+, PostgreSQL 15+ (running on your host)
 
 ### 1. Clone & set up
 
@@ -71,11 +81,10 @@ git clone https://github.com/nowbind/nowbind.git
 cd nowbind
 ```
 
-### 2. Start the database
+### 2. Start PostgreSQL locally
 
-```bash
-docker compose up -d postgres
-```
+Make sure your host Postgres service is running and accessible on port `5432`.
+NowBind does not manage Postgres as a Docker service in this repo.
 
 ### 3. Run the backend
 
@@ -106,7 +115,7 @@ BACKEND_URL=http://localhost:8080
 npm run dev
 ```
 
-Or use `make dev` from the project root to start everything at once.
+Or use `make dev` from the project root to run backend + frontend once Postgres is already running.
 
 ## Environment Variables
 
@@ -346,10 +355,10 @@ Neon databases are auto-detected and configured with appropriate pooling.
 ## Development
 
 ```bash
-make dev              # Start everything (db + backend + frontend)
+make dev              # Start backend + frontend (requires local Postgres)
 make dev-backend      # Go backend
 make dev-frontend     # Next.js dev server
-make db               # Start PostgreSQL via Docker
+make db               # Reminder: Postgres is host-managed
 make migrate          # Run migrations
 make build-backend    # Build Go binary
 make build-frontend   # Build Next.js
@@ -363,4 +372,4 @@ Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before
 
 ## License
 
-[Apache License 2.0](LICENSE) — you are free to use, modify, and distribute this software, but **attribution is required**. See the [NOTICE](NOTICE) file for details.
+[GNU Affero General Public License v3.0](LICENSE) — this is copyleft software. If you modify and host NowBind as a network service, you must release your modifications under AGPL-3.0. See the [NOTICE](NOTICE) file for attribution requirements.

@@ -189,13 +189,6 @@ function LoginContent() {
           </>
         )}
 
-        <p className="text-center text-xs text-muted-foreground">
-          By signing in, you agree to our{" "}
-          <a href="/terms" className="underline underline-offset-4 hover:text-foreground">
-            Terms of Service
-          </a>
-          .
-        </p>
       </div>
     </div>
   );

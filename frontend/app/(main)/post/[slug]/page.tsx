@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { API_URL, SITE_URL } from "@/lib/constants";
+import { safeJsonLd } from "@/lib/utils";
 import type { Post } from "@/lib/types";
 import type { Metadata } from "next";
 import { PostContent } from "@/components/post/post-content";
@@ -9,6 +10,9 @@ import { RelatedPosts } from "@/components/post/related-posts";
 import { ViewTracker } from "@/components/post/view-tracker";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
+import { ReadingProgress } from "@/components/layout/reading-progress";
+import { TableOfContents } from "@/components/post/table-of-contents";
+import { ReadingToolbar } from "@/components/post/reading-toolbar";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -74,29 +78,48 @@ export default async function PostPage({ params }: Props) {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <ReadingProgress />
       <Navbar />
       <main className="flex-1">
-        <article className="mx-auto max-w-3xl px-4 py-8">
-          <PostHeader post={post} />
-          <PostContent
-            content={post.content}
-            contentJSON={post.content_json}
-            contentFormat={post.content_format}
-          />
-        </article>
+        <div className="mx-auto max-w-7xl px-4 py-8 lg:grid lg:grid-cols-[1fr_minmax(0,48rem)_1fr] lg:gap-8">
+          {/* Left spacer on desktop */}
+          <div className="hidden lg:block" />
 
-        <div className="mx-auto max-w-3xl space-y-12 px-4 pb-12">
+          {/* Main article column */}
+          <div>
+            <article>
+              <PostHeader post={post} />
+              {/* Mobile TOC (hidden on desktop) */}
+              <div data-toc>
+                <TableOfContents variant="mobile" />
+              </div>
+              <PostContent
+                content={post.content}
+                contentJSON={post.content_json}
+                contentFormat={post.content_format}
+              />
+            </article>
+          </div>
+
+          {/* Desktop TOC sidebar (hidden on mobile) */}
+          <div data-toc>
+            <TableOfContents variant="desktop" />
+          </div>
+        </div>
+
+        <div data-post-extras className="mx-auto max-w-3xl space-y-12 px-4 pb-12">
           <CommentSection postId={post.id} initialCount={post.comment_count} />
           <RelatedPosts slug={post.slug} />
         </div>
 
         <ViewTracker slug={post.slug} />
+        <ReadingToolbar />
 
         {/* JSON-LD for the article */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: safeJsonLd({
               "@context": "https://schema.org",
               "@type": "Article",
               headline: post.title,

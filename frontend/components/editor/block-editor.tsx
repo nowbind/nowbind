@@ -5,6 +5,9 @@ import { EditorRoot, EditorContent, ImageResizer, type JSONContent } from "novel
 import { defaultExtensions } from "./extensions";
 import { EditorBubbleMenu } from "./bubble-menu";
 import { EditorToolbar } from "./editor-toolbar";
+import type { Editor } from "@tiptap/core";
+import { getReadingTime } from "@/lib/utils";
+import { detectProvider } from "./extensions/embed-utils";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-type UrlPromptType = "image" | "youtube" | "bookmark" | "link";
+type UrlPromptType = "image" | "youtube" | "bookmark" | "link" | "embed";
 
 const urlPromptConfig: Record<
   UrlPromptType,
@@ -42,6 +45,11 @@ const urlPromptConfig: Record<
     description: "Paste the URL to link the selected text.",
     placeholder: "https://example.com",
   },
+  embed: {
+    title: "Embed URL",
+    description: "Paste a URL from Twitter/X, GitHub Gist, or CodePen.",
+    placeholder: "https://twitter.com/user/status/...",
+  },
 };
 
 interface BlockEditorProps {
@@ -57,10 +65,12 @@ export function BlockEditor({
 }: BlockEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<any>(null);
+  const [editorInstance, setEditorInstance] = useState<Editor | null>(null);
 
   // URL prompt modal state
   const [urlPrompt, setUrlPrompt] = useState<UrlPromptType | null>(null);
   const [urlValue, setUrlValue] = useState("");
+  const [wordCount, setWordCount] = useState(0);
 
   const handleImageUpload = useCallback(() => {
     fileInputRef.current?.click();
@@ -118,6 +128,18 @@ export function BlockEditor({
       case "link":
         editor.chain().focus().setLink({ href: url }).run();
         break;
+      case "embed": {
+        const provider = detectProvider(url);
+        if (provider === "youtube") {
+          editor.chain().focus().setYoutubeVideo({ src: url }).run();
+        } else if (provider) {
+          editor.chain().focus().setEmbed({ provider, url }).run();
+        } else {
+          // Fallback to bookmark for unrecognized URLs
+          editor.chain().focus().setBookmark({ url, title: url }).run();
+        }
+        break;
+      }
     }
 
     setUrlPrompt(null);
@@ -127,16 +149,22 @@ export function BlockEditor({
   return (
     <div className="relative w-full">
       <EditorRoot>
-        <EditorToolbar />
+        {editorInstance && <EditorToolbar editor={editorInstance} />}
+        <div className="mt-4" />
         <EditorContent
           extensions={defaultExtensions as any}
           initialContent={initialContent}
+          immediatelyRender={false}
           className="prose-editor min-h-[500px]"
           onUpdate={({ editor }) => {
             onChange?.(editor.getJSON());
+            const text = editor.getText();
+            const words = text.trim().split(/\s+/).filter(Boolean).length;
+            setWordCount(words);
           }}
           onCreate={({ editor }) => {
             editorRef.current = editor;
+            setEditorInstance(editor as unknown as Editor);
 
             // Listen for image insert events
             const insertHandler = (e: Event) => {
@@ -212,6 +240,13 @@ export function BlockEditor({
           <ImageResizer />
         </EditorContent>
       </EditorRoot>
+
+      {/* Word count */}
+      <div className="pointer-events-none sticky bottom-4 flex justify-end pr-2 pt-2">
+        <span className="pointer-events-auto rounded-md bg-muted/80 px-2.5 py-1 text-xs text-muted-foreground backdrop-blur-sm">
+          {wordCount} {wordCount === 1 ? "word" : "words"} · {getReadingTime(wordCount)}
+        </span>
+      </div>
 
       <input
         ref={fileInputRef}

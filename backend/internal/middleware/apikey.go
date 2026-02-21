@@ -68,9 +68,6 @@ func ApiKeyAuth(pool *pgxpool.Pool) func(http.Handler) http.Handler {
 
 			// Log usage asynchronously
 			ip := stripPort(r.RemoteAddr)
-			if fwd := r.Header.Get("X-Real-Ip"); fwd != "" {
-				ip = stripPort(fwd)
-			}
 			endpoint := r.URL.Path
 			detail := rpcDetail.Value
 			go func() {
@@ -96,9 +93,6 @@ func extractApiKey(r *http.Request) string {
 		if strings.HasPrefix(auth, "Bearer nb_") {
 			return strings.TrimPrefix(auth, "Bearer ")
 		}
-	}
-	if key := r.URL.Query().Get("api_key"); key != "" {
-		return key
 	}
 	return ""
 }

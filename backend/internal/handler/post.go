@@ -42,6 +42,14 @@ func (h *PostHandler) List(w http.ResponseWriter, r *http.Request) {
 		params.AuthorID = author
 	}
 
+	if featured := r.URL.Query().Get("featured"); featured == "true" {
+		t := true
+		params.Featured = &t
+	} else if featured == "false" {
+		f := false
+		params.Featured = &f
+	}
+
 	posts, total, err := h.postRepo.List(r.Context(), params)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list posts")

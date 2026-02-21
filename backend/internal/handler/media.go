@@ -39,7 +39,19 @@ func (h *MediaHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	mimeType := header.Header.Get("Content-Type")
+	// Read first 512 bytes to detect actual content type
+	buf := make([]byte, 512)
+	n, err := file.Read(buf)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "failed to read file")
+		return
+	}
+	mimeType := http.DetectContentType(buf[:n])
+	// Seek back to the start so the full file is uploaded
+	if _, err := file.Seek(0, 0); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to process file")
+		return
+	}
 	if !isAllowedMime(mimeType) {
 		writeError(w, http.StatusBadRequest, "unsupported file type")
 		return
@@ -59,6 +71,10 @@ func (h *MediaHandler) Upload(w http.ResponseWriter, r *http.Request) {
 }
 
 func isAllowedMime(mime string) bool {
+	// Block SVG (can contain JavaScript)
+	if mime == "image/svg+xml" {
+		return false
+	}
 	return strings.HasPrefix(mime, "image/") ||
 		strings.HasPrefix(mime, "video/") ||
 		strings.HasPrefix(mime, "audio/")

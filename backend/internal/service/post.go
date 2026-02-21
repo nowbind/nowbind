@@ -21,21 +21,27 @@ func NewPostService(posts *repository.PostRepository, tags *repository.TagReposi
 }
 
 type CreatePostInput struct {
-	Title       string   `json:"title"`
-	Subtitle    string   `json:"subtitle"`
-	Content     string   `json:"content"`
-	ContentJSON string   `json:"content_json"`
-	Excerpt     string   `json:"excerpt"`
-	Tags        []string `json:"tags"`
+	Title        string   `json:"title"`
+	Subtitle     string   `json:"subtitle"`
+	Content      string   `json:"content"`
+	ContentJSON  string   `json:"content_json"`
+	Excerpt      string   `json:"excerpt"`
+	Tags         []string `json:"tags"`
+	FeatureImage string   `json:"feature_image"`
+	Featured     bool     `json:"featured"`
+	Slug         string   `json:"slug"`
 }
 
 type UpdatePostInput struct {
-	Title       string   `json:"title"`
-	Subtitle    string   `json:"subtitle"`
-	Content     string   `json:"content"`
-	ContentJSON string   `json:"content_json"`
-	Excerpt     string   `json:"excerpt"`
-	Tags        []string `json:"tags"`
+	Title        string   `json:"title"`
+	Subtitle     string   `json:"subtitle"`
+	Content      string   `json:"content"`
+	ContentJSON  string   `json:"content_json"`
+	Excerpt      string   `json:"excerpt"`
+	Tags         []string `json:"tags"`
+	FeatureImage *string  `json:"feature_image"`
+	Featured     *bool    `json:"featured"`
+	Slug         string   `json:"slug"`
 }
 
 func (s *PostService) Create(ctx context.Context, authorID string, input CreatePostInput) (*model.Post, error) {
@@ -53,15 +59,22 @@ func (s *PostService) Create(ctx context.Context, authorID string, input CreateP
 		contentText = extractTextFromTipTap(input.ContentJSON)
 	}
 
+	slug := pkg.UniqueSlug(input.Title)
+	if input.Slug != "" {
+		slug = pkg.Slugify(input.Slug)
+	}
+
 	post := &model.Post{
 		AuthorID:      authorID,
-		Slug:          pkg.UniqueSlug(input.Title),
+		Slug:          slug,
 		Title:         input.Title,
 		Subtitle:      input.Subtitle,
 		Content:       contentText,
 		ContentJSON:   contentJSON,
 		ContentFormat: contentFormat,
 		Excerpt:       input.Excerpt,
+		FeatureImage:  input.FeatureImage,
+		Featured:      input.Featured,
 		Status:        "draft",
 		ReadingTime:   pkg.EstimateReadingTime(contentText),
 	}
@@ -103,13 +116,35 @@ func (s *PostService) Update(ctx context.Context, postID, authorID string, input
 
 	if input.Title != "" {
 		post.Title = input.Title
-		post.Slug = pkg.UniqueSlug(input.Title)
+		// Only regenerate slug from title if no custom slug provided
+		if input.Slug == "" {
+			post.Slug = pkg.UniqueSlug(input.Title)
+		}
+	}
+	if input.Slug != "" {
+		newSlug := pkg.Slugify(input.Slug)
+		if newSlug != post.Slug {
+			taken, err := s.posts.IsSlugTaken(ctx, newSlug, post.ID)
+			if err != nil {
+				return nil, fmt.Errorf("checking slug: %w", err)
+			}
+			if taken {
+				return nil, fmt.Errorf("slug already taken")
+			}
+			post.Slug = newSlug
+		}
 	}
 	if input.Subtitle != "" {
 		post.Subtitle = input.Subtitle
 	}
 	if input.Excerpt != "" {
 		post.Excerpt = input.Excerpt
+	}
+	if input.FeatureImage != nil {
+		post.FeatureImage = *input.FeatureImage
+	}
+	if input.Featured != nil {
+		post.Featured = *input.Featured
 	}
 
 	contentText := input.Content
@@ -227,7 +262,7 @@ func generateSummary(content, excerpt string) string {
 
 func extractKeywords(title, content string) []string {
 	words := strings.Fields(strings.ToLower(title))
-	var keywords []string
+	keywords := []string{}
 	seen := make(map[string]bool)
 	for _, w := range words {
 		w = strings.Trim(w, ".,!?;:\"'()[]{}–—")

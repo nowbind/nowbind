@@ -9,6 +9,7 @@ import { FollowButton } from "@/components/social/follow-button";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/hooks/use-auth";
 import type { Post, User, PaginatedResponse } from "@/lib/types";
+import { Globe, Twitter, Github } from "lucide-react";
 
 interface AuthorContentProps {
   username: string;
@@ -83,13 +84,23 @@ export function AuthorContent({
               <FollowButton
                 username={author.username}
                 initialFollowing={author.is_following}
+                onToggle={(nowFollowing) => {
+                  setAuthor((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          follower_count:
+                            prev.follower_count + (nowFollowing ? 1 : -1),
+                          is_following: nowFollowing,
+                        }
+                      : prev,
+                  );
+                }}
               />
             )}
           </div>
-          {author.bio && (
-            <p className="mt-1 text-sm text-muted-foreground">{author.bio}</p>
-          )}
-          <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
+          {author.bio && <p className="mt-2 text-sm">{author.bio}</p>}
+          <div className="mt-3 flex items-center gap-4 text-sm text-muted-foreground">
             <Link
               href={`/author/${username}/followers`}
               className="hover:text-foreground"
@@ -109,6 +120,44 @@ export function AuthorContent({
               following
             </Link>
           </div>
+          {/* Social links */}
+          {(author.website || author.twitter_url || author.github_url) && (
+            <div className="mt-3 flex items-center gap-3">
+              {author.website && (
+                <a
+                  href={author.website}
+                  target="_blank"
+                  rel="noopener"
+                  className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <Globe className="h-4 w-4" />
+                  <span className="hidden sm:inline">Website</span>
+                </a>
+              )}
+              {author.twitter_url && (
+                <a
+                  href={author.twitter_url}
+                  target="_blank"
+                  rel="noopener"
+                  className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <Twitter className="h-4 w-4" />
+                  <span className="hidden sm:inline">Twitter</span>
+                </a>
+              )}
+              {author.github_url && (
+                <a
+                  href={author.github_url}
+                  target="_blank"
+                  rel="noopener"
+                  className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <Github className="h-4 w-4" />
+                  <span className="hidden sm:inline">GitHub</span>
+                </a>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

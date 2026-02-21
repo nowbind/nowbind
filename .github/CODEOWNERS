@@ -1,0 +1,13 @@
+# NowBind Code Owners
+# All files: review required from the primary maintainer
+* @rnihesh
+
+# Backend
+/backend/ @rnihesh
+
+# Frontend
+/frontend/ @rnihesh
+
+# Security & compliance
+SECURITY.md @rnihesh
+CODE_OF_CONDUCT.md @rnihesh

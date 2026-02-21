@@ -6,7 +6,6 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/nowbind/nowbind/internal/middleware"
@@ -32,11 +31,6 @@ func (h *AnalyticsHandler) TrackView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	viewerIP := r.RemoteAddr
-	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
-		viewerIP = strings.SplitN(fwd, ",", 2)[0]
-	}
-	viewerIP = strings.TrimSpace(viewerIP)
-
 	// Strip port from ip:port format (r.RemoteAddr includes port)
 	if host, _, err := net.SplitHostPort(viewerIP); err == nil {
 		viewerIP = host

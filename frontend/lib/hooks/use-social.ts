@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { toast } from "sonner";
 import { api } from "@/lib/api";
 
 export function useFollow(initialFollowing: boolean = false) {
@@ -15,11 +16,16 @@ export function useFollow(initialFollowing: boolean = false) {
       try {
         if (prev) {
           await api.delete(`/users/${username}/follow`);
+          toast.success("Unfollowed");
         } else {
           await api.post(`/users/${username}/follow`);
+          toast.success("Following!");
         }
+        return true;
       } catch {
         setIsFollowing(prev); // revert
+        toast.error("Action failed");
+        return false;
       } finally {
         setLoading(false);
       }

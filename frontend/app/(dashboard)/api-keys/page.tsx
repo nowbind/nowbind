@@ -18,6 +18,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/hooks/use-auth";
 import type { ApiKey } from "@/lib/types";
 import { Key, Plus, Trash2, Copy, Check } from "lucide-react";
+import { toast } from "sonner";
 
 export default function ApiKeysPage() {
   const router = useRouter();
@@ -51,8 +52,9 @@ export default function ApiKeysPage() {
       );
       setNewKey(result.key);
       setKeys([result.api_key, ...keys]);
-    } catch (err) {
-      console.error("Failed to create:", err);
+      toast.success("API key created");
+    } catch {
+      toast.error("Failed to create API key");
     } finally {
       setCreating(false);
     }
@@ -60,9 +62,15 @@ export default function ApiKeysPage() {
 
   const confirmDelete = async () => {
     if (!deleteId) return;
-    await api.delete(`/api-keys/${deleteId}`);
-    setKeys(keys.filter((k) => k.id !== deleteId));
-    setDeleteId(null);
+    try {
+      await api.delete(`/api-keys/${deleteId}`);
+      setKeys(keys.filter((k) => k.id !== deleteId));
+      toast.success("API key deleted");
+    } catch {
+      toast.error("Failed to delete API key");
+    } finally {
+      setDeleteId(null);
+    }
   };
 
   const copyKey = async () => {

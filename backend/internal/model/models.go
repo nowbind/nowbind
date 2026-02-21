@@ -3,19 +3,24 @@ package model
 import "time"
 
 type User struct {
-	ID             string    `json:"id"`
-	Email          string    `json:"email"`
-	Username       string    `json:"username"`
-	DisplayName    string    `json:"display_name"`
-	Bio            string    `json:"bio"`
-	AvatarURL      string    `json:"avatar_url"`
-	OAuthProvider  string    `json:"-"`
-	OAuthID        string    `json:"-"`
-	FollowerCount  int       `json:"follower_count"`
-	FollowingCount int       `json:"following_count"`
-	IsFollowing    bool      `json:"is_following,omitempty"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	ID              string    `json:"id"`
+	Email           string    `json:"-"`
+	Username        string    `json:"username"`
+	DisplayName     string    `json:"display_name"`
+	Bio             string    `json:"bio"`
+	AvatarURL       string    `json:"avatar_url"`
+	OAuthProvider   string    `json:"-"`
+	OAuthID         string    `json:"-"`
+	Website         string    `json:"website,omitempty"`
+	TwitterURL      string    `json:"twitter_url,omitempty"`
+	GitHubURL       string    `json:"github_url,omitempty"`
+	MetaTitle       string    `json:"meta_title,omitempty"`
+	MetaDescription string    `json:"meta_description,omitempty"`
+	FollowerCount   int       `json:"follower_count"`
+	FollowingCount  int       `json:"following_count"`
+	IsFollowing     bool      `json:"is_following,omitempty"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
 }
 
 type Post struct {
@@ -29,6 +34,8 @@ type Post struct {
 	ContentJSON   *string    `json:"content_json,omitempty"`
 	ContentFormat string     `json:"content_format"`
 	Excerpt       string     `json:"excerpt"`
+	FeatureImage  string     `json:"feature_image,omitempty"`
+	Featured      bool       `json:"featured"`
 	Status        string     `json:"status"` // "draft" | "published"
 	ReadingTime   int        `json:"reading_time"`
 	LikeCount     int        `json:"like_count"`

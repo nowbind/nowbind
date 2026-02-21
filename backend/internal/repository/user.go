@@ -22,11 +22,15 @@ func (r *UserRepository) GetByID(ctx context.Context, id string) (*model.User, e
 	user := &model.User{}
 	err := r.pool.QueryRow(ctx,
 		`SELECT id, email, username, display_name, bio, avatar_url, oauth_provider, oauth_id,
-		        follower_count, following_count, created_at, updated_at
+		        follower_count, following_count, created_at, updated_at,
+		        COALESCE(website, ''), COALESCE(twitter_url, ''), COALESCE(github_url, ''),
+		        COALESCE(meta_title, ''), COALESCE(meta_description, '')
 		 FROM users WHERE id = $1`, id,
 	).Scan(&user.ID, &user.Email, &user.Username, &user.DisplayName, &user.Bio,
 		&user.AvatarURL, &user.OAuthProvider, &user.OAuthID,
-		&user.FollowerCount, &user.FollowingCount, &user.CreatedAt, &user.UpdatedAt)
+		&user.FollowerCount, &user.FollowingCount, &user.CreatedAt, &user.UpdatedAt,
+		&user.Website, &user.TwitterURL, &user.GitHubURL,
+		&user.MetaTitle, &user.MetaDescription)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, nil
@@ -41,11 +45,15 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*model.U
 	user := &model.User{}
 	err := r.pool.QueryRow(ctx,
 		`SELECT id, email, username, display_name, bio, avatar_url, oauth_provider, oauth_id,
-		        follower_count, following_count, created_at, updated_at
+		        follower_count, following_count, created_at, updated_at,
+		        COALESCE(website, ''), COALESCE(twitter_url, ''), COALESCE(github_url, ''),
+		        COALESCE(meta_title, ''), COALESCE(meta_description, '')
 		 FROM users WHERE email = $1`, email,
 	).Scan(&user.ID, &user.Email, &user.Username, &user.DisplayName, &user.Bio,
 		&user.AvatarURL, &user.OAuthProvider, &user.OAuthID,
-		&user.FollowerCount, &user.FollowingCount, &user.CreatedAt, &user.UpdatedAt)
+		&user.FollowerCount, &user.FollowingCount, &user.CreatedAt, &user.UpdatedAt,
+		&user.Website, &user.TwitterURL, &user.GitHubURL,
+		&user.MetaTitle, &user.MetaDescription)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, nil
@@ -60,11 +68,15 @@ func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*m
 	user := &model.User{}
 	err := r.pool.QueryRow(ctx,
 		`SELECT id, email, username, display_name, bio, avatar_url, oauth_provider, oauth_id,
-		        follower_count, following_count, created_at, updated_at
+		        follower_count, following_count, created_at, updated_at,
+		        COALESCE(website, ''), COALESCE(twitter_url, ''), COALESCE(github_url, ''),
+		        COALESCE(meta_title, ''), COALESCE(meta_description, '')
 		 FROM users WHERE username = $1`, username,
 	).Scan(&user.ID, &user.Email, &user.Username, &user.DisplayName, &user.Bio,
 		&user.AvatarURL, &user.OAuthProvider, &user.OAuthID,
-		&user.FollowerCount, &user.FollowingCount, &user.CreatedAt, &user.UpdatedAt)
+		&user.FollowerCount, &user.FollowingCount, &user.CreatedAt, &user.UpdatedAt,
+		&user.Website, &user.TwitterURL, &user.GitHubURL,
+		&user.MetaTitle, &user.MetaDescription)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, nil
@@ -87,10 +99,20 @@ func (r *UserRepository) Create(ctx context.Context, user *model.User) error {
 
 func (r *UserRepository) Update(ctx context.Context, user *model.User) error {
 	_, err := r.pool.Exec(ctx,
-		`UPDATE users SET display_name = $2, bio = $3, avatar_url = $4, updated_at = NOW()
+		`UPDATE users SET display_name = $2, bio = $3, avatar_url = $4,
+		        website = $5, twitter_url = $6, github_url = $7,
+		        meta_title = $8, meta_description = $9,
+		        updated_at = NOW()
 		 WHERE id = $1`,
 		user.ID, user.DisplayName, user.Bio, user.AvatarURL,
+		user.Website, user.TwitterURL, user.GitHubURL,
+		user.MetaTitle, user.MetaDescription,
 	)
+	return err
+}
+
+func (r *UserRepository) Delete(ctx context.Context, id string) error {
+	_, err := r.pool.Exec(ctx, `DELETE FROM users WHERE id = $1`, id)
 	return err
 }
 

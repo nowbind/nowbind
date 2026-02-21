@@ -34,7 +34,7 @@ export const Bookmark = Node.create<BookmarkOptions>({
   },
 
   parseHTML() {
-    return [{ tag: 'div[data-bookmark]' }];
+    return [{ tag: "div[data-bookmark]" }];
   },
 
   renderHTML({ HTMLAttributes }) {
@@ -46,19 +46,38 @@ export const Bookmark = Node.create<BookmarkOptions>({
       }),
       [
         "a",
-        { href: HTMLAttributes.url, target: "_blank", rel: "noopener noreferrer" },
+        { href: HTMLAttributes.url, target: "_blank", rel: "noopener" },
         [
           "div",
           { class: "bookmark-content" },
-          ["div", { class: "bookmark-title" }, HTMLAttributes.title || HTMLAttributes.url],
+          [
+            "div",
+            { class: "bookmark-title" },
+            HTMLAttributes.title || HTMLAttributes.url,
+          ],
           ...(HTMLAttributes.description
-            ? [["div", { class: "bookmark-description" }, HTMLAttributes.description]]
+            ? [
+                [
+                  "div",
+                  { class: "bookmark-description" },
+                  HTMLAttributes.description,
+                ],
+              ]
             : []),
           [
             "div",
             { class: "bookmark-url" },
             ...(HTMLAttributes.favicon
-              ? [["img", { src: HTMLAttributes.favicon, class: "bookmark-favicon", alt: "" }]]
+              ? [
+                  [
+                    "img",
+                    {
+                      src: HTMLAttributes.favicon,
+                      class: "bookmark-favicon",
+                      alt: "",
+                    },
+                  ],
+                ]
               : []),
             HTMLAttributes.url,
           ],

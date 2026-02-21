@@ -15,10 +15,17 @@ import {
   Youtube,
   Quote,
   Minus,
-  AlertCircle,
+  Info,
+  AlertTriangle,
+  Lightbulb,
+  StickyNote,
   LinkIcon,
   List,
   ListOrdered,
+  MessageCircle,
+  Github,
+  Code2,
+  Globe,
 } from "lucide-react";
 
 interface SlashCommandsProps {
@@ -106,9 +113,33 @@ const commandGroups = [
       {
         title: "Callout",
         description: "Add an info callout",
-        icon: <AlertCircle className="h-4 w-4" />,
+        icon: <Info className="h-4 w-4" />,
         command: ({ editor, range }: { editor: any; range: any }) => {
           editor.chain().focus().deleteRange(range).setCallout({ type: "info" }).run();
+        },
+      },
+      {
+        title: "Warning",
+        description: "Add a warning callout",
+        icon: <AlertTriangle className="h-4 w-4" />,
+        command: ({ editor, range }: { editor: any; range: any }) => {
+          editor.chain().focus().deleteRange(range).setCallout({ type: "warning" }).run();
+        },
+      },
+      {
+        title: "Tip",
+        description: "Add a tip callout",
+        icon: <Lightbulb className="h-4 w-4" />,
+        command: ({ editor, range }: { editor: any; range: any }) => {
+          editor.chain().focus().deleteRange(range).setCallout({ type: "tip" }).run();
+        },
+      },
+      {
+        title: "Note",
+        description: "Add a note callout",
+        icon: <StickyNote className="h-4 w-4" />,
+        command: ({ editor, range }: { editor: any; range: any }) => {
+          editor.chain().focus().deleteRange(range).setCallout({ type: "note" }).run();
         },
       },
     ],
@@ -161,6 +192,55 @@ const commandGroups = [
               .setBookmark({ url, title: url })
               .run();
           }
+        },
+      },
+    ],
+  },
+  {
+    heading: "Embeds",
+    items: [
+      {
+        title: "Embed",
+        description: "Embed from URL (Twitter, Gist, CodePen)",
+        icon: <Globe className="h-4 w-4" />,
+        command: ({ editor, range }: { editor: any; range: any }) => {
+          editor.chain().focus().deleteRange(range).run();
+          window.dispatchEvent(
+            new CustomEvent("editor-url-prompt", { detail: { type: "embed" } })
+          );
+        },
+      },
+      {
+        title: "Twitter",
+        description: "Embed a tweet",
+        icon: <MessageCircle className="h-4 w-4" />,
+        command: ({ editor, range }: { editor: any; range: any }) => {
+          editor.chain().focus().deleteRange(range).run();
+          window.dispatchEvent(
+            new CustomEvent("editor-url-prompt", { detail: { type: "embed" } })
+          );
+        },
+      },
+      {
+        title: "Gist",
+        description: "Embed a GitHub Gist",
+        icon: <Github className="h-4 w-4" />,
+        command: ({ editor, range }: { editor: any; range: any }) => {
+          editor.chain().focus().deleteRange(range).run();
+          window.dispatchEvent(
+            new CustomEvent("editor-url-prompt", { detail: { type: "embed" } })
+          );
+        },
+      },
+      {
+        title: "CodePen",
+        description: "Embed a CodePen",
+        icon: <Code2 className="h-4 w-4" />,
+        command: ({ editor, range }: { editor: any; range: any }) => {
+          editor.chain().focus().deleteRange(range).run();
+          window.dispatchEvent(
+            new CustomEvent("editor-url-prompt", { detail: { type: "embed" } })
+          );
         },
       },
     ],

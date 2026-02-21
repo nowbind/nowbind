@@ -1,10 +1,15 @@
 export interface User {
   id: string;
-  email: string;
+  email?: string;
   username: string;
   display_name: string;
   bio: string;
   avatar_url: string;
+  website?: string;
+  twitter_url?: string;
+  github_url?: string;
+  meta_title?: string;
+  meta_description?: string;
   follower_count: number;
   following_count: number;
   is_following?: boolean;
@@ -23,6 +28,8 @@ export interface Post {
   content_json?: string;
   content_format: "markdown" | "tiptap";
   excerpt: string;
+  feature_image?: string;
+  featured: boolean;
   status: "draft" | "published";
   reading_time: number;
   like_count: number;
@@ -109,8 +116,10 @@ export interface ReferrerStat {
 
 export interface PostStats {
   post_id: string;
-  total_views: number;
+  view_date: string;
+  view_count: number;
   unique_views: number;
+  ai_view_count: number;
 }
 
 export interface ApiKey {

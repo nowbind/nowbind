@@ -14,7 +14,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/hooks/use-auth";
 import type { Post, User, PaginatedResponse } from "@/lib/types";
-import { Settings, Users, UserPlus, FileText, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Settings,
+  Users,
+  UserPlus,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  Globe,
+  Twitter,
+  Github,
+} from "lucide-react";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -83,9 +93,9 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!user) return;
     api
-      .get<PaginatedResponse<Post>>("/posts/trending", { limit: "20" })
-      .then((res) => {
-        const posts = res.data || [];
+      .get<Post[]>("/posts/trending", { limit: "20" })
+      .then((trendingPosts) => {
+        const posts = trendingPosts || [];
         const seen = new Set<string>();
         const authors: User[] = [];
         for (const p of posts) {
@@ -160,11 +170,7 @@ export default function ProfilePage() {
                     </Link>
                   </Button>
                 </div>
-                {profile.bio && (
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {profile.bio}
-                  </p>
-                )}
+                {profile.bio && <p className="mt-2 text-sm">{profile.bio}</p>}
                 <div className="mt-3 flex items-center gap-6 text-sm">
                   <button
                     onClick={() => setActiveTab("followers")}
@@ -191,6 +197,46 @@ export default function ProfilePage() {
                     posts
                   </span>
                 </div>
+                {/* Social links */}
+                {(profile.website ||
+                  profile.twitter_url ||
+                  profile.github_url) && (
+                  <div className="mt-3 flex items-center gap-3">
+                    {profile.website && (
+                      <a
+                        href={profile.website}
+                        target="_blank"
+                        rel="noopener"
+                        className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        <Globe className="h-4 w-4" />
+                        <span className="hidden sm:inline">Website</span>
+                      </a>
+                    )}
+                    {profile.twitter_url && (
+                      <a
+                        href={profile.twitter_url}
+                        target="_blank"
+                        rel="noopener"
+                        className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        <Twitter className="h-4 w-4" />
+                        <span className="hidden sm:inline">Twitter</span>
+                      </a>
+                    )}
+                    {profile.github_url && (
+                      <a
+                        href={profile.github_url}
+                        target="_blank"
+                        rel="noopener"
+                        className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        <Github className="h-4 w-4" />
+                        <span className="hidden sm:inline">GitHub</span>
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
