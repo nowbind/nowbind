@@ -21,15 +21,7 @@ body:
     id: solution
     attributes:
       label: Proposed Solution
-      description: Describe the solution you'd like.
-    validations:
-      required: true
-
-  - type: textarea
-    id: alternatives
-    attributes:
-      label: Alternatives Considered
-      description: Any other solutions or features you've considered?
+      description: Describe the solution you'd like. How would it work? What would the user experience be like?
 
   - type: dropdown
     id: area
@@ -47,17 +39,6 @@ body:
         - DevOps / Infrastructure
         - Documentation
         - Other
-    validations:
-      required: true
-
-  - type: dropdown
-    id: willingness
-    attributes:
-      label: Would you be willing to contribute this?
-      options:
-        - "Yes, I'd like to submit a PR"
-        - "I can help with design/testing"
-        - "No, just suggesting"
     validations:
       required: true
 
