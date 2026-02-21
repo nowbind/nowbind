@@ -3,6 +3,22 @@ import type { NextRequest } from "next/server";
 
 export const runtime = "edge";
 
+async function loadFont(weight: number): Promise<ArrayBuffer> {
+  const css = await fetch(
+    `https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@${weight}&display=swap`,
+    {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      },
+    }
+  ).then((r) => r.text());
+
+  const url = css.match(/url\((https:\/\/fonts\.gstatic\.com[^)]+\.woff2)\)/)?.[1];
+  if (!url) throw new Error(`Space Grotesk woff2 URL not found for weight ${weight}`);
+  return fetch(url).then((r) => r.arrayBuffer());
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const title = searchParams.get("title") || "NowBind";
@@ -18,6 +34,12 @@ export async function GET(req: NextRequest) {
           ? "Posts on NowBind"
           : "The open-source AI-native blogging platform";
 
+  const [fontRegular, fontSemiBold, fontBold] = await Promise.all([
+    loadFont(400),
+    loadFont(600),
+    loadFont(700),
+  ]);
+
   return new ImageResponse(
     (
       <div
@@ -30,27 +52,19 @@ export async function GET(req: NextRequest) {
           padding: "60px",
           background: "linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)",
           color: "#fafafa",
-          fontFamily: "sans-serif",
+          fontFamily: "Space Grotesk",
         }}
       >
         {/* Top: branding */}
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <div
-            style={{
-              width: "36px",
-              height: "36px",
-              borderRadius: "8px",
-              background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "18px",
-              fontWeight: 700,
-              color: "#fff",
-            }}
-          >
-            N
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={new URL("/logos/n.-light.svg", req.url).toString()}
+            width={36}
+            height={36}
+            style={{ borderRadius: "8px" }}
+            alt="NowBind logo"
+          />
           <span style={{ fontSize: "20px", fontWeight: 600, color: "#a1a1aa" }}>
             NowBind
           </span>
@@ -74,7 +88,7 @@ export async function GET(req: NextRequest) {
             {title}
           </div>
           {subtitle && (
-            <div style={{ fontSize: "24px", color: "#a1a1aa" }}>{subtitle}</div>
+            <div style={{ fontSize: "24px", fontWeight: 400, color: "#a1a1aa" }}>{subtitle}</div>
           )}
         </div>
 
@@ -92,6 +106,11 @@ export async function GET(req: NextRequest) {
     {
       width: 1200,
       height: 630,
+      fonts: [
+        { name: "Space Grotesk", data: fontRegular, weight: 400 },
+        { name: "Space Grotesk", data: fontSemiBold, weight: 600 },
+        { name: "Space Grotesk", data: fontBold, weight: 700 },
+      ],
     },
   );
 }

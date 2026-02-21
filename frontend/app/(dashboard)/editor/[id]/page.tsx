@@ -212,9 +212,10 @@ export default function EditPostPage({ params }: Props) {
       <Navbar />
       <main className="flex-1">
         <div className="mx-auto max-w-5xl px-4 py-6">
-          <div className="mb-6 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <h1 className="text-lg font-semibold">Edit Post</h1>
+          <div className="mb-6 flex flex-wrap items-center gap-2">
+            {/* Row 1: title + preview (preview stays on this row on mobile) */}
+            <div className="flex flex-1 items-center gap-3 min-w-0">
+              <h1 className="text-lg font-semibold shrink-0">Edit Post</h1>
               {statusLabel && (
                 <span
                   className={`text-xs ${
@@ -229,24 +230,25 @@ export default function EditPostPage({ params }: Props) {
                 </span>
               )}
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant={previewMode ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setPreviewMode(!previewMode)}
-              >
-                {previewMode ? (
-                  <>
-                    <PenLine className="mr-2 h-4 w-4" />
-                    Edit
-                  </>
-                ) : (
-                  <>
-                    <Eye className="mr-2 h-4 w-4" />
-                    Preview
-                  </>
-                )}
-              </Button>
+            <Button
+              variant={previewMode ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setPreviewMode(!previewMode)}
+            >
+              {previewMode ? (
+                <>
+                  <PenLine className="mr-2 h-4 w-4" />
+                  Edit
+                </>
+              ) : (
+                <>
+                  <Eye className="mr-2 h-4 w-4" />
+                  Preview
+                </>
+              )}
+            </Button>
+            {/* Row 2 on mobile (basis-full), inline on desktop (sm:basis-auto) */}
+            <div className="flex basis-full justify-end gap-2 sm:basis-auto">
               <Button
                 variant="ghost"
                 size="icon"
