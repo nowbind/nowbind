@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { BubbleMenu } from "@tiptap/react";
-import { useEditor } from "novel";
+import { EditorBubble, useEditor } from "novel";
 import {
   Bold,
   Italic,
@@ -101,8 +100,7 @@ export function EditorBubbleMenu() {
   ];
 
   return (
-    <BubbleMenu
-      editor={editor}
+    <EditorBubble
       updateDelay={0}
       shouldShow={({ editor, state }) => {
         // Show for image/youtube node selections
@@ -251,6 +249,6 @@ export function EditorBubbleMenu() {
           </>
         )}
       </div>
-    </BubbleMenu>
+    </EditorBubble>
   );
 }

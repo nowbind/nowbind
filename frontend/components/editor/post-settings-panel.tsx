@@ -91,7 +91,7 @@ export function PostSettingsPanel({
           <div className="space-y-2">
             <label className="text-sm font-medium">Post URL</label>
             <div className="flex items-center gap-0 rounded-md border">
-              <span className="shrink-0 bg-muted px-2 py-2 text-xs text-muted-foreground">
+              <span className="shrink-0 bg-muted px-2 py-2 text-xs text-muted-foreground rounded-md mx-0.5">
                 {slugPrefix}
               </span>
               <Input

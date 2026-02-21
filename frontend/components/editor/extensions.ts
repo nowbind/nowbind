@@ -6,15 +6,15 @@ import {
   CodeBlockLowlight,
   Youtube,
   TextStyle,
+  HorizontalRule,
+  Placeholder,
 } from "novel";
-import { Extension } from "@tiptap/core";
+import { Extension, InputRule } from "@tiptap/core";
+import { Code } from "@tiptap/extension-code";
 import { ReactRenderer } from "@tiptap/react";
 import Suggestion from "@tiptap/suggestion";
 import tippy, { type Instance as TippyInstance } from "tippy.js";
-import HorizontalRule from "@tiptap/extension-horizontal-rule";
-import Placeholder from "@tiptap/extension-placeholder";
 import { common, createLowlight } from "lowlight";
-import { Markdown } from "tiptap-markdown";
 import { Callout } from "./extensions/callout";
 import { Bookmark } from "./extensions/bookmark";
 import { Embed } from "./extensions/embed";
@@ -97,6 +97,47 @@ const SlashCommand = Extension.create({
       Suggestion({
         editor: this.editor,
         ...this.options.suggestion,
+      }),
+    ];
+  },
+});
+
+// Custom inline-code extension with a reliable input rule.
+// The default Code extension uses markInputRule with a (^|[^`]) prefix capture group
+// which can produce incorrect position calculations. This version uses a raw InputRule
+// that correctly handles both handleTextInput (closing backtick not yet in doc) and
+// compositionend (text already committed) paths.
+const CustomCode = Code.extend({
+  addInputRules() {
+    const type = this.type;
+    return [
+      new InputRule({
+        find: /`([^`]+)`$/,
+        handler({ state, range, match }) {
+          const content = match[1];
+          if (!content) return null;
+
+          const { tr } = state;
+          const openBacktickPos = range.from;
+          const contentStart = range.from + 1;
+          const contentEnd = contentStart + content.length;
+
+          // Delete closing backtick only when it's already in the document
+          // (compositionend path). In the handleTextInput path, range.to equals
+          // contentEnd, so this branch is skipped and handleTextInput returning
+          // true prevents the backtick from being inserted at all.
+          if (contentEnd < range.to) {
+            tr.delete(contentEnd, range.to);
+          }
+
+          // Delete the opening backtick.
+          tr.delete(openBacktickPos, contentStart);
+
+          // Apply the code mark to the content (positions shift after the opening
+          // backtick deletion, so content is now at openBacktickPos).
+          tr.addMark(openBacktickPos, openBacktickPos + content.length, type.create());
+          tr.removeStoredMark(type);
+        },
       }),
     ];
   },
@@ -237,7 +278,9 @@ export const defaultExtensions = [
   StarterKit.configure({
     codeBlock: false,
     horizontalRule: false,
+    code: false,
   }),
+  CustomCode,
   UpdatedImage.configure({
     allowBase64: false,
     HTMLAttributes: {
@@ -277,9 +320,4 @@ export const defaultExtensions = [
   Callout,
   Bookmark,
   Embed,
-  Markdown.configure({
-    html: true,
-    transformPastedText: true,
-    transformCopiedText: true,
-  }),
 ];
