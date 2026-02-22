@@ -19,11 +19,29 @@ func NewTagHandler(tags *repository.TagRepository, posts *repository.PostReposit
 }
 
 func (h *TagHandler) List(w http.ResponseWriter, r *http.Request) {
-	tags, err := h.tags.List(r.Context())
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	perPage, _ := strconv.Atoi(r.URL.Query().Get("per_page"))
+	if page < 1 {
+		page = 1
+	}
+	if perPage < 1 || perPage > 100 {
+		perPage = 50
+	}
+
+	tags, total, err := h.tags.ListPaginated(r.Context(), page, perPage)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list tags")
 		return
 	}
+
+	totalPages := total / perPage
+	if total%perPage > 0 {
+		totalPages++
+	}
+	w.Header().Set("X-Total-Count", strconv.Itoa(total))
+	w.Header().Set("X-Page", strconv.Itoa(page))
+	w.Header().Set("X-Per-Page", strconv.Itoa(perPage))
+	w.Header().Set("X-Total-Pages", strconv.Itoa(totalPages))
 	writeJSON(w, http.StatusOK, tags)
 }
 

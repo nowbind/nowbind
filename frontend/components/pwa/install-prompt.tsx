@@ -56,7 +56,12 @@ export function InstallPrompt() {
             Add to your home screen for a better experience.
           </p>
         </div>
-        <Button variant="ghost" size="icon-xs" onClick={dismiss}>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          onClick={dismiss}
+          aria-label="Dismiss install prompt"
+        >
           <X className="h-3 w-3" />
         </Button>
       </div>

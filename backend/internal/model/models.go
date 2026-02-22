@@ -59,7 +59,7 @@ type Media struct {
 	MimeType     string    `json:"mime_type"`
 	SizeBytes    int64     `json:"size_bytes"`
 	URL          string    `json:"url"`
-	R2Key        string    `json:"r2_key"`
+	R2Key        string    `json:"-"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 

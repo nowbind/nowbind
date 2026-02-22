@@ -20,6 +20,7 @@ export function BookmarkButton({ postId, initialBookmarked = false }: BookmarkBu
       onClick={() => toggle(postId)}
       disabled={loading}
       className="text-muted-foreground"
+      aria-label={isBookmarked ? "Remove bookmark" : "Bookmark post"}
     >
       <Bookmark
         className={cn(

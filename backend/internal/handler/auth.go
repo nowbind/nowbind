@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -51,10 +52,20 @@ func (h *AuthHandler) SendMagicLink(w http.ResponseWriter, r *http.Request) {
 	// Check if user is banned before sending email
 	email := strings.ToLower(strings.TrimSpace(req.Email))
 	var banned bool
-	_ = h.pool.QueryRow(r.Context(),
-		`SELECT EXISTS(SELECT 1 FROM user_bans ub JOIN users u ON u.id = ub.user_id WHERE u.email = $1)`,
+	err := h.pool.QueryRow(r.Context(),
+		`SELECT EXISTS(
+			SELECT 1
+			FROM user_bans ub
+			JOIN users u ON u.id = ub.user_id
+			WHERE u.email = $1
+			  AND (ub.banned_until IS NULL OR ub.banned_until > NOW())
+		)`,
 		email,
 	).Scan(&banned)
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "failed to verify account status")
+		return
+	}
 	if banned {
 		writeError(w, http.StatusForbidden, "account suspended")
 		return
@@ -62,6 +73,10 @@ func (h *AuthHandler) SendMagicLink(w http.ResponseWriter, r *http.Request) {
 
 	token, err := h.auth.SendMagicLink(r.Context(), req.Email, h.cfg.FrontendURL)
 	if err != nil {
+		if errors.Is(err, service.ErrMagicLinkDelivery) {
+			writeError(w, http.StatusServiceUnavailable, "we are experiencing high email load, please try again in a few minutes")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "failed to send magic link")
 		return
 	}

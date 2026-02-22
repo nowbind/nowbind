@@ -40,6 +40,7 @@ export function CodeBlock({ children, language = "text" }: CodeBlockProps) {
           size="icon"
           className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
           onClick={handleCopy}
+          aria-label={copied ? "Copied code" : "Copy code"}
         >
           {copied ? (
             <Check className="h-3.5 w-3.5 text-green-500" />

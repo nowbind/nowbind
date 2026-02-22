@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -164,7 +165,16 @@ func (h *AgentHandler) Search(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AgentHandler) ListAuthors(w http.ResponseWriter, r *http.Request) {
-	authors, err := h.users.ListAuthors(r.Context())
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	perPage, _ := strconv.Atoi(r.URL.Query().Get("per_page"))
+	if page < 1 {
+		page = 1
+	}
+	if perPage < 1 || perPage > 100 {
+		perPage = 50
+	}
+
+	authors, total, err := h.users.ListAuthorsPaginated(r.Context(), page, perPage)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list authors")
 		return
@@ -192,6 +202,14 @@ func (h *AgentHandler) ListAuthors(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	totalPages := total / perPage
+	if total%perPage > 0 {
+		totalPages++
+	}
+	w.Header().Set("X-Total-Count", strconv.Itoa(total))
+	w.Header().Set("X-Page", strconv.Itoa(page))
+	w.Header().Set("X-Per-Page", strconv.Itoa(perPage))
+	w.Header().Set("X-Total-Pages", strconv.Itoa(totalPages))
 	writeJSON(w, http.StatusOK, result)
 }
 

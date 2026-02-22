@@ -84,10 +84,12 @@ func (r *SessionRepository) CreateMagicLink(ctx context.Context, email string) (
 	if err != nil {
 		return "", fmt.Errorf("generating magic link token: %w", err)
 	}
+	hash := sha256.Sum256([]byte(token))
+	tokenHash := hex.EncodeToString(hash[:])
 
 	_, err = r.pool.Exec(ctx,
-		`INSERT INTO magic_links (email, token, expires_at) VALUES ($1, $2, $3)`,
-		email, token, time.Now().Add(15*time.Minute),
+		`INSERT INTO magic_links (email, token_hash, expires_at) VALUES ($1, $2, $3)`,
+		email, tokenHash, time.Now().Add(15*time.Minute),
 	)
 	if err != nil {
 		return "", fmt.Errorf("creating magic link: %w", err)
@@ -96,13 +98,37 @@ func (r *SessionRepository) CreateMagicLink(ctx context.Context, email string) (
 	return token, nil
 }
 
+func (r *SessionRepository) DeleteMagicLink(ctx context.Context, token string) error {
+	hash := sha256.Sum256([]byte(token))
+	tokenHash := hex.EncodeToString(hash[:])
+
+	_, err := r.pool.Exec(ctx,
+		`DELETE FROM magic_links
+		 WHERE token_hash = $1 OR token = $2`,
+		tokenHash, token,
+	)
+	return err
+}
+
 func (r *SessionRepository) VerifyMagicLink(ctx context.Context, token string) (string, error) {
+	hash := sha256.Sum256([]byte(token))
+	tokenHash := hex.EncodeToString(hash[:])
+
 	var email string
 	err := r.pool.QueryRow(ctx,
 		`UPDATE magic_links SET used_at = NOW()
-		 WHERE token = $1 AND expires_at > NOW() AND used_at IS NULL
-		 RETURNING email`, token,
+		 WHERE token_hash = $1 AND expires_at > NOW() AND used_at IS NULL
+		 RETURNING email`, tokenHash,
 	).Scan(&email)
+	if err == pgx.ErrNoRows {
+		// Backward compatibility for links created before token hashing rollout.
+		err = r.pool.QueryRow(ctx,
+			`UPDATE magic_links SET used_at = NOW(), token_hash = $2, token = NULL
+			 WHERE token = $1 AND expires_at > NOW() AND used_at IS NULL
+			 RETURNING email`,
+			token, tokenHash,
+		).Scan(&email)
+	}
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return "", fmt.Errorf("invalid or expired magic link")

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -22,6 +23,8 @@ type AuthService struct {
 	email    *EmailService
 }
 
+var ErrMagicLinkDelivery = errors.New("magic link delivery failed")
+
 func NewAuthService(users *repository.UserRepository, sessions *repository.SessionRepository, secret string, email *EmailService) *AuthService {
 	return &AuthService{users: users, sessions: sessions, secret: secret, email: email}
 }
@@ -37,7 +40,10 @@ func (s *AuthService) SendMagicLink(ctx context.Context, email, frontendURL stri
 
 	if err := s.email.SendMagicLinkEmail(email, magicLinkURL); err != nil {
 		log.Printf("Failed to send magic link email to %s: %v", email, err)
-		// Don't fail the request - still return token in dev mode
+		if cleanupErr := s.sessions.DeleteMagicLink(ctx, token); cleanupErr != nil {
+			log.Printf("Failed to cleanup unsent magic link for %s: %v", email, cleanupErr)
+		}
+		return "", fmt.Errorf("%w: %v", ErrMagicLinkDelivery, err)
 	}
 
 	return token, nil

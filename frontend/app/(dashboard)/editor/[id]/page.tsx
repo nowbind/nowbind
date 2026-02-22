@@ -255,6 +255,7 @@ export default function EditPostPage({ params }: Props) {
                 size="icon"
                 onClick={() => setSettingsOpen(true)}
                 title="Post settings"
+                aria-label="Open post settings"
               >
                 <Settings className="h-4 w-4" />
               </Button>
@@ -328,6 +329,7 @@ export default function EditPostPage({ params }: Props) {
                     className="h-8 w-8 bg-background/80 backdrop-blur-sm"
                     onClick={handleFeatureImageUpload}
                     disabled={featureUploading}
+                    aria-label="Replace feature image"
                   >
                     {featureUploading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -343,6 +345,7 @@ export default function EditPostPage({ params }: Props) {
                       setFeatureImage("");
                       markDirty();
                     }}
+                    aria-label="Remove feature image"
                   >
                     <X className="h-4 w-4" />
                   </Button>

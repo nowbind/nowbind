@@ -48,7 +48,7 @@ func Load() (*Config, error) {
 		Port:        getEnv("PORT", "8080"),
 		DatabaseURL: getEnv("DATABASE_URL", "postgres://nowbind:nowbind_dev@localhost:5432/nowbind?sslmode=disable"),
 		DBMode:      getEnv("DB_MODE", ""),
-		JWTSecret:   getEnv("JWT_SECRET", "dev-secret-change-me-in-production"),
+		JWTSecret:   getEnv("JWT_SECRET", ""),
 		FrontendURL: getEnv("FRONTEND_URL", "http://localhost:3000"),
 		Environment: getEnv("ENVIRONMENT", "development"),
 
@@ -92,8 +92,11 @@ func Load() (*Config, error) {
 		cfg.GmailClientSecret = cfg.GoogleClientSecret
 	}
 
-	if cfg.JWTSecret == "dev-secret-change-me-in-production" && cfg.Environment == "production" {
-		return nil, fmt.Errorf("JWT_SECRET must be set in production")
+	if strings.TrimSpace(cfg.JWTSecret) == "" {
+		return nil, fmt.Errorf("JWT_SECRET must be set")
+	}
+	if len(cfg.JWTSecret) < 32 {
+		return nil, fmt.Errorf("JWT_SECRET must be at least 32 characters")
 	}
 
 	return cfg, nil

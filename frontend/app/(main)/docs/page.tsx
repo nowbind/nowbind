@@ -26,7 +26,13 @@ function CodeBlock({ children, label }: { children: string; label?: string }) {
       {label && (
         <div className="flex items-center justify-between border-b px-4 py-2">
           <span className="text-xs font-medium text-muted-foreground">{label}</span>
-          <Button variant="ghost" size="icon-xs" onClick={copy} className="opacity-0 transition-opacity group-hover:opacity-100">
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={copy}
+            className="opacity-0 transition-opacity group-hover:opacity-100"
+            aria-label={copied ? "Copied code" : "Copy code"}
+          >
             {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
           </Button>
         </div>
@@ -35,7 +41,13 @@ function CodeBlock({ children, label }: { children: string; label?: string }) {
         <code>{children}</code>
       </pre>
       {!label && (
-        <Button variant="ghost" size="icon-xs" onClick={copy} className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          onClick={copy}
+          className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100"
+          aria-label={copied ? "Copied code" : "Copy code"}
+        >
           {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
         </Button>
       )}

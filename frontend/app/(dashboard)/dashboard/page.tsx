@@ -73,8 +73,14 @@ export default function DashboardPage() {
       router.push("/login");
       return;
     }
-    api.get<Tag[]>("/tags").then(setAllTags).catch(() => {});
+    api.get<Tag[]>("/users/me/tags").then(setAllTags).catch(() => setAllTags([]));
   }, [user, authLoading, router]);
+
+  useEffect(() => {
+    if (tagFilter && !allTags.some((tag) => tag.slug === tagFilter)) {
+      setTagFilter("");
+    }
+  }, [allTags, tagFilter]);
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -442,7 +448,12 @@ export default function DashboardPage() {
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        aria-label="Open post actions"
+                      >
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -503,8 +514,10 @@ export default function DashboardPage() {
               Delete
             </Button>
             <button
+              type="button"
               onClick={() => setSelectedIds(new Set())}
               className="ml-1 text-muted-foreground hover:text-foreground"
+              aria-label="Clear selected posts"
             >
               <X className="h-4 w-4" />
             </button>

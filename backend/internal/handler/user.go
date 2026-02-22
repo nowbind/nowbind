@@ -193,8 +193,8 @@ func (h *UserHandler) ExportData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	export := map[string]interface{}{
-		"user":       user,
-		"posts":      posts,
+		"user":        user,
+		"posts":       posts,
 		"exported_at": time.Now().Format(time.RFC3339),
 	}
 
@@ -266,4 +266,16 @@ func (h *UserHandler) MyPosts(w http.ResponseWriter, r *http.Request) {
 		"per_page":    perPage,
 		"total_pages": totalPages,
 	})
+}
+
+func (h *UserHandler) MyTags(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserID(r.Context())
+
+	tags, err := h.posts.ListTagsByAuthor(r.Context(), userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to list tags")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, tags)
 }

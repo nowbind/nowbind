@@ -115,7 +115,13 @@ export default function ApiKeysPage() {
                 <code className="min-w-0 flex-1 truncate rounded bg-background p-2 font-mono text-xs">
                   {newKey}
                 </code>
-                <Button variant="outline" size="icon" className="shrink-0" onClick={copyKey}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  onClick={copyKey}
+                  aria-label={copied ? "API key copied" : "Copy API key"}
+                >
                   {copied ? (
                     <Check className="h-4 w-4 text-green-500" />
                   ) : (
@@ -159,6 +165,7 @@ export default function ApiKeysPage() {
                     size="icon"
                     className="shrink-0 text-destructive"
                     onClick={() => setDeleteId(key.id)}
+                    aria-label="Delete API key"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

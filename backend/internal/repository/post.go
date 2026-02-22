@@ -18,6 +18,10 @@ func NewPostRepository(pool *pgxpool.Pool) *PostRepository {
 	return &PostRepository{pool: pool}
 }
 
+func (r *PostRepository) BeginTx(ctx context.Context) (pgx.Tx, error) {
+	return r.pool.Begin(ctx)
+}
+
 type ListPostsParams struct {
 	Status    string
 	AuthorID  string
@@ -162,6 +166,34 @@ func (r *PostRepository) List(ctx context.Context, params ListPostsParams) ([]mo
 	return posts, total, nil
 }
 
+func (r *PostRepository) ListTagsByAuthor(ctx context.Context, authorID string) ([]model.Tag, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT t.id, t.name, t.slug, COUNT(*)::INT AS post_count
+		 FROM tags t
+		 JOIN post_tags pt ON pt.tag_id = t.id
+		 JOIN posts p ON p.id = pt.post_id
+		 WHERE p.author_id = $1
+		 GROUP BY t.id, t.name, t.slug
+		 ORDER BY post_count DESC, t.name ASC`,
+		authorID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("listing author tags: %w", err)
+	}
+	defer rows.Close()
+
+	tags := make([]model.Tag, 0)
+	for rows.Next() {
+		var t model.Tag
+		if err := rows.Scan(&t.ID, &t.Name, &t.Slug, &t.PostCount); err != nil {
+			return nil, fmt.Errorf("scanning author tag: %w", err)
+		}
+		tags = append(tags, t)
+	}
+
+	return tags, nil
+}
+
 func (r *PostRepository) GetBySlug(ctx context.Context, slug string) (*model.Post, error) {
 	p := &model.Post{}
 	author := &model.User{}
@@ -243,6 +275,18 @@ func (r *PostRepository) Create(ctx context.Context, post *model.Post) error {
 	).Scan(&post.ID, &post.CreatedAt, &post.UpdatedAt)
 }
 
+func (r *PostRepository) CreateTx(ctx context.Context, tx pgx.Tx, post *model.Post) error {
+	return tx.QueryRow(ctx,
+		`INSERT INTO posts (author_id, slug, title, subtitle, content, excerpt, status, reading_time, ai_summary, ai_keywords, structured_md, content_json, content_format, feature_image, featured)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+		 RETURNING id, created_at, updated_at`,
+		post.AuthorID, post.Slug, post.Title, post.Subtitle, post.Content,
+		post.Excerpt, post.Status, post.ReadingTime,
+		post.AISummary, post.AIKeywords, post.StructuredMD,
+		post.ContentJSON, post.ContentFormat, post.FeatureImage, post.Featured,
+	).Scan(&post.ID, &post.CreatedAt, &post.UpdatedAt)
+}
+
 func (r *PostRepository) Update(ctx context.Context, post *model.Post) error {
 	_, err := r.pool.Exec(ctx,
 		`UPDATE posts SET title = $2, subtitle = $3, content = $4, excerpt = $5,
@@ -290,6 +334,13 @@ func (r *PostRepository) SetTags(ctx context.Context, postID string, tagIDs []st
 	}
 	defer tx.Rollback(ctx)
 
+	if err := r.SetTagsTx(ctx, tx, postID, tagIDs); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+func (r *PostRepository) SetTagsTx(ctx context.Context, tx pgx.Tx, postID string, tagIDs []string) error {
 	// Remove existing tags
 	if _, err := tx.Exec(ctx, "DELETE FROM post_tags WHERE post_id = $1", postID); err != nil {
 		return err
@@ -305,7 +356,7 @@ func (r *PostRepository) SetTags(ctx context.Context, postID string, tagIDs []st
 		}
 	}
 
-	return tx.Commit(ctx)
+	return nil
 }
 
 // Search performs full-text search on posts

@@ -15,51 +15,38 @@ export function useAutosave({ interval = 30_000, onSave }: UseAutosaveOptions) {
   const [status, setStatus] = useState<AutosaveStatus>("idle");
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [, tick] = useState(0);
+
   const dirtyRef = useRef(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savingRef = useRef(false);
+  const queueSaveRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onSaveRef = useRef(onSave);
+
   onSaveRef.current = onSave;
 
-  // Tick every 30s to update "Saved X min ago" text
-  useEffect(() => {
-    const id = setInterval(() => tick((n) => n + 1), 30_000);
-    return () => clearInterval(id);
+  const clearScheduledSave = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
   }, []);
 
-  const markDirty = useCallback(() => {
-    dirtyRef.current = true;
-    setStatus("unsaved");
+  const runSave = useCallback(async (): Promise<boolean> => {
+    if (!dirtyRef.current) {
+      return true;
+    }
 
-    // Reset debounce timer
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(async () => {
-      if (!dirtyRef.current || savingRef.current) return;
-      savingRef.current = true;
-      setStatus("saving");
-      try {
-        const ok = await onSaveRef.current();
-        if (ok) {
-          dirtyRef.current = false;
-          setLastSavedAt(new Date());
-          setStatus("saved");
-        } else {
-          setStatus("unsaved");
-        }
-      } catch {
-        setStatus("unsaved");
-      } finally {
-        savingRef.current = false;
-      }
-    }, interval);
-  }, [interval]);
+    if (savingRef.current) {
+      queueSaveRef.current = true;
+      return false;
+    }
 
-  const saveNow = useCallback(async () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
     savingRef.current = true;
     setStatus("saving");
+
+    let ok = false;
     try {
-      const ok = await onSaveRef.current();
+      ok = await onSaveRef.current();
       if (ok) {
         dirtyRef.current = false;
         setLastSavedAt(new Date());
@@ -73,22 +60,58 @@ export function useAutosave({ interval = 30_000, onSave }: UseAutosaveOptions) {
       return false;
     } finally {
       savingRef.current = false;
+
+      // If edits happened while saving, queue exactly one follow-up save.
+      if (queueSaveRef.current || dirtyRef.current) {
+        queueSaveRef.current = false;
+        clearScheduledSave();
+        timerRef.current = setTimeout(() => {
+          void runSave();
+        }, 500);
+      }
     }
+  }, [clearScheduledSave]);
+
+  // Tick every 30s to update "Saved X min ago" text
+  useEffect(() => {
+    const id = setInterval(() => tick((n) => n + 1), 30_000);
+    return () => clearInterval(id);
   }, []);
+
+  const markDirty = useCallback(() => {
+    dirtyRef.current = true;
+    setStatus("unsaved");
+
+    if (savingRef.current) {
+      queueSaveRef.current = true;
+      return;
+    }
+
+    clearScheduledSave();
+    timerRef.current = setTimeout(() => {
+      void runSave();
+    }, interval);
+  }, [interval, clearScheduledSave, runSave]);
+
+  const saveNow = useCallback(async () => {
+    clearScheduledSave();
+    return runSave();
+  }, [clearScheduledSave, runSave]);
 
   const markClean = useCallback(() => {
     dirtyRef.current = false;
-    if (timerRef.current) clearTimeout(timerRef.current);
+    queueSaveRef.current = false;
+    clearScheduledSave();
     setLastSavedAt(new Date());
     setStatus("saved");
-  }, []);
+  }, [clearScheduledSave]);
 
   // Cleanup timer on unmount
   useEffect(() => {
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
+      clearScheduledSave();
     };
-  }, []);
+  }, [clearScheduledSave]);
 
   // beforeunload warning (tab close, refresh, external navigation)
   useEffect(() => {
@@ -100,25 +123,6 @@ export function useAutosave({ interval = 30_000, onSave }: UseAutosaveOptions) {
     };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
-  }, []);
-
-  // Intercept browser back/forward button (popstate) for SPA navigation
-  useEffect(() => {
-    const handlePopState = () => {
-      if (dirtyRef.current) {
-        const leave = window.confirm(
-          "You have unsaved changes. Are you sure you want to leave?"
-        );
-        if (!leave) {
-          // Stay on page — re-push the guard entry
-          window.history.pushState(null, "", window.location.href);
-        }
-      }
-    };
-    // Push initial guard entry
-    window.history.pushState(null, "", window.location.href);
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
   // Build display label

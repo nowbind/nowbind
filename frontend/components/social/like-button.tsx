@@ -21,6 +21,7 @@ export function LikeButton({ postId, initialLiked = false, initialCount = 0 }: L
       onClick={() => toggle(postId)}
       disabled={loading}
       className="gap-1.5 text-muted-foreground"
+      aria-label={isLiked ? "Unlike post" : "Like post"}
     >
       <Heart
         className={cn(

@@ -58,7 +58,7 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 	postH := handler.NewPostHandler(postService, postRepo, socialH)
 	userH := handler.NewUserHandler(userRepo, postRepo, followRepo, socialH)
 	tagH := handler.NewTagHandler(tagRepo, postRepo, socialH)
-	searchH := handler.NewSearchHandler(postRepo, socialH)
+	searchH := handler.NewSearchHandler(postRepo, userRepo, followRepo, socialH)
 	feedH := handler.NewFeedHandler(postRepo, cfg.FrontendURL, cfg.FrontendURL)
 	llmsH := handler.NewLLMSHandler(postRepo, cfg.FrontendURL)
 	agentH := handler.NewAgentHandler(postRepo, tagRepo, userRepo, analyticsRepo, cfg.FrontendURL)
@@ -132,6 +132,7 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.AuthMiddleware(cfg.JWTSecret, pool))
 				r.Put("/me", userH.UpdateMe)
+				r.Get("/me/tags", userH.MyTags)
 				r.Get("/me/posts", userH.MyPosts)
 				r.Get("/me/export", userH.ExportData)
 				r.Delete("/me", userH.DeleteAccount)
@@ -157,8 +158,9 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 		r.Get("/tags/{slug}/posts", tagH.GetPostsByTag)
 
 		// Search
-		r.Get("/search", searchH.Search)
-		r.Get("/search/suggest", searchH.Suggest)
+		r.With(middleware.OptionalAuth(cfg.JWTSecret)).Get("/search", searchH.Search)
+		r.With(middleware.OptionalAuth(cfg.JWTSecret)).Get("/search/authors", searchH.SearchAuthors)
+		r.With(middleware.OptionalAuth(cfg.JWTSecret)).Get("/search/suggest", searchH.Suggest)
 
 		// Feeds
 		r.Get("/feeds/rss", feedH.RSS)

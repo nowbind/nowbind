@@ -138,14 +138,39 @@ func (r *UserRepository) UpsertByOAuth(ctx context.Context, user *model.User) er
 }
 
 func (r *UserRepository) ListAuthors(ctx context.Context) ([]model.User, error) {
+	authors, _, err := r.ListAuthorsPaginated(ctx, 1, 50)
+	return authors, err
+}
+
+func (r *UserRepository) ListAuthorsPaginated(ctx context.Context, page, perPage int) ([]model.User, int, error) {
+	if page < 1 {
+		page = 1
+	}
+	if perPage < 1 || perPage > 100 {
+		perPage = 50
+	}
+
+	var total int
+	if err := r.pool.QueryRow(ctx,
+		`SELECT COUNT(DISTINCT u.id)
+		 FROM users u
+		 JOIN posts p ON p.author_id = u.id AND p.status = 'published'`,
+	).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	offset := (page - 1) * perPage
 	rows, err := r.pool.Query(ctx,
 		`SELECT DISTINCT u.id, u.username, u.display_name, u.bio, u.avatar_url,
 		        u.follower_count, u.following_count
 		 FROM users u
 		 JOIN posts p ON p.author_id = u.id AND p.status = 'published'
-		 ORDER BY u.display_name ASC`)
+		 ORDER BY u.display_name ASC
+		 LIMIT $1 OFFSET $2`,
+		perPage, offset,
+	)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -154,12 +179,69 @@ func (r *UserRepository) ListAuthors(ctx context.Context) ([]model.User, error) 
 		var u model.User
 		if err := rows.Scan(&u.ID, &u.Username, &u.DisplayName, &u.Bio, &u.AvatarURL,
 			&u.FollowerCount, &u.FollowingCount); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		applyGravatar(&u)
 		users = append(users, u)
 	}
-	return users, nil
+	return users, total, nil
+}
+
+func (r *UserRepository) SearchAuthors(ctx context.Context, query string, page, perPage int) ([]model.User, int, error) {
+	if page < 1 {
+		page = 1
+	}
+	if perPage < 1 || perPage > 100 {
+		perPage = 20
+	}
+
+	pattern := "%" + query + "%"
+
+	var total int
+	if err := r.pool.QueryRow(ctx,
+		`SELECT COUNT(DISTINCT u.id)
+		 FROM users u
+		 JOIN posts p ON p.author_id = u.id AND p.status = 'published'
+		 WHERE u.username ILIKE $1
+		    OR COALESCE(u.display_name, '') ILIKE $1
+		    OR COALESCE(u.bio, '') ILIKE $1`,
+		pattern,
+	).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("counting author search results: %w", err)
+	}
+
+	offset := (page - 1) * perPage
+	rows, err := r.pool.Query(ctx,
+		`SELECT DISTINCT u.id, u.username, u.display_name, u.bio, u.avatar_url,
+		        u.follower_count, u.following_count
+		 FROM users u
+		 JOIN posts p ON p.author_id = u.id AND p.status = 'published'
+		 WHERE u.username ILIKE $1
+		    OR COALESCE(u.display_name, '') ILIKE $1
+		    OR COALESCE(u.bio, '') ILIKE $1
+		 ORDER BY u.follower_count DESC, u.display_name ASC, u.username ASC
+		 LIMIT $2 OFFSET $3`,
+		pattern, perPage, offset,
+	)
+	if err != nil {
+		return nil, 0, fmt.Errorf("searching authors: %w", err)
+	}
+	defer rows.Close()
+
+	users := make([]model.User, 0)
+	for rows.Next() {
+		var u model.User
+		if err := rows.Scan(
+			&u.ID, &u.Username, &u.DisplayName, &u.Bio, &u.AvatarURL,
+			&u.FollowerCount, &u.FollowingCount,
+		); err != nil {
+			return nil, 0, fmt.Errorf("scanning author search result: %w", err)
+		}
+		applyGravatar(&u)
+		users = append(users, u)
+	}
+
+	return users, total, nil
 }
 
 func applyGravatar(user *model.User) {

@@ -295,6 +295,7 @@ function Pagination({
         size="sm"
         onClick={() => onPageChange(page - 1)}
         disabled={page <= 1}
+        aria-label="Previous page"
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
@@ -306,6 +307,7 @@ function Pagination({
         size="sm"
         onClick={() => onPageChange(page + 1)}
         disabled={page >= totalPages}
+        aria-label="Next page"
       >
         <ChevronRight className="h-4 w-4" />
       </Button>
@@ -414,6 +416,13 @@ export default function ExplorePage() {
     posts: visiblePosts,
     enabled: true,
     isAuthenticated: !!user,
+    onPostsChange: (updater) => {
+      if (activeTab === "foryou") {
+        setFeedPosts((prev) => updater(prev));
+      } else {
+        setLatestPosts((prev) => updater(prev));
+      }
+    },
   });
 
   return (
@@ -430,9 +439,11 @@ export default function ExplorePage() {
               </p>
             </div>
             <button
+              type="button"
               onClick={() => setShowHelp(true)}
               className="hidden items-center gap-1.5 rounded-md border px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground sm:flex"
               title="Keyboard shortcuts"
+              aria-label="Open keyboard shortcuts"
             >
               <Keyboard className="h-3 w-3" />
               <kbd className="font-mono">?</kbd>

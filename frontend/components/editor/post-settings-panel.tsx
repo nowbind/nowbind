@@ -110,7 +110,11 @@ export function PostSettingsPanel({
               {tags.map((tag) => (
                 <Badge key={tag} variant="secondary" className="gap-1">
                   {tag}
-                  <button onClick={() => removeTag(tag)}>
+                  <button
+                    type="button"
+                    onClick={() => removeTag(tag)}
+                    aria-label={`Remove tag ${tag}`}
+                  >
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>
@@ -155,6 +159,7 @@ export function PostSettingsPanel({
                 type="button"
                 role="switch"
                 aria-checked={featured}
+                aria-label="Toggle featured post"
                 onClick={() => onFeaturedChange(!featured)}
                 className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
                   featured ? "bg-primary" : "bg-muted"
@@ -189,6 +194,7 @@ export function PostSettingsPanel({
                     className="h-7 w-7"
                     onClick={handleFeatureImageUpload}
                     disabled={uploading}
+                    aria-label="Replace feature image"
                   >
                     {uploading ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -201,6 +207,7 @@ export function PostSettingsPanel({
                     variant="secondary"
                     className="h-7 w-7"
                     onClick={() => onFeatureImageChange("")}
+                    aria-label="Remove feature image"
                   >
                     <X className="h-3.5 w-3.5" />
                   </Button>

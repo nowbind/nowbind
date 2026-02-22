@@ -41,6 +41,7 @@ export default function FeedPage() {
     posts,
     enabled: !authLoading && !!user && !loading,
     isAuthenticated: !!user,
+    onPostsChange: (updater) => setPosts((prev) => updater(prev)),
   });
 
   if (!authLoading && !user) {
@@ -75,9 +76,11 @@ export default function FeedPage() {
               </p>
             </div>
             <button
+              type="button"
               onClick={() => setShowHelp(true)}
               className="hidden items-center gap-1.5 rounded-md border px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground sm:flex"
               title="Keyboard shortcuts"
+              aria-label="Open keyboard shortcuts"
             >
               <Keyboard className="h-3 w-3" />
               <kbd className="font-mono">?</kbd>
@@ -125,6 +128,7 @@ export default function FeedPage() {
                     size="sm"
                     onClick={() => setPage(page - 1)}
                     disabled={page <= 1}
+                    aria-label="Previous page"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
@@ -136,6 +140,7 @@ export default function FeedPage() {
                     size="sm"
                     onClick={() => setPage(page + 1)}
                     disabled={page >= totalPages}
+                    aria-label="Next page"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>

@@ -12,7 +12,7 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgres://nowbind:nowbind_dev@host.docker.internal:5432/nowbind?sslmode=disable}
       FRONTEND_URL: http://localhost:3000
       ENVIRONMENT: development
-      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me-in-production}
+      JWT_SECRET: ${JWT_SECRET}
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}

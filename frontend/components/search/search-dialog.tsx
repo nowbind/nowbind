@@ -78,7 +78,7 @@ export function SearchDialog() {
       <CommandList>
         <CommandEmpty>
           {query
-            ? "No results found. Press Enter to search."
+            ? "No matching posts found."
             : "Start typing to search..."}
         </CommandEmpty>
         {results.length > 0 && (

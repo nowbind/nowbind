@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/nowbind/nowbind/internal/model"
 	"github.com/nowbind/nowbind/internal/repository"
 	"github.com/nowbind/nowbind/pkg"
@@ -84,19 +85,29 @@ func (s *PostService) Create(ctx context.Context, authorID string, input CreateP
 	post.AIKeywords = extractKeywords(input.Title, contentText)
 	post.StructuredMD = generateStructuredMD(post)
 
-	if err := s.posts.Create(ctx, post); err != nil {
+	tx, err := s.posts.BeginTx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("starting transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	if err := s.posts.CreateTx(ctx, tx, post); err != nil {
 		return nil, fmt.Errorf("creating post: %w", err)
 	}
 
 	// Handle tags
 	if len(input.Tags) > 0 {
-		tagIDs, err := s.ensureTags(ctx, input.Tags)
+		tagIDs, err := s.ensureTagsTx(ctx, tx, input.Tags)
 		if err != nil {
 			return nil, err
 		}
-		if err := s.posts.SetTags(ctx, post.ID, tagIDs); err != nil {
+		if err := s.posts.SetTagsTx(ctx, tx, post.ID, tagIDs); err != nil {
 			return nil, err
 		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("committing post create: %w", err)
 	}
 
 	return s.posts.GetBySlug(ctx, post.Slug)
@@ -241,6 +252,22 @@ func (s *PostService) ensureTags(ctx context.Context, names []string) ([]string,
 			continue
 		}
 		tag, err := s.tags.FindOrCreate(ctx, name)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, tag.ID)
+	}
+	return ids, nil
+}
+
+func (s *PostService) ensureTagsTx(ctx context.Context, tx pgx.Tx, names []string) ([]string, error) {
+	var ids []string
+	for _, name := range names {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			continue
+		}
+		tag, err := s.tags.FindOrCreateTx(ctx, tx, name)
 		if err != nil {
 			return nil, err
 		}

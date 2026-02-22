@@ -9,6 +9,7 @@ interface UseKeyboardNavOptions {
   posts: Post[];
   enabled?: boolean;
   isAuthenticated?: boolean;
+  onPostsChange?: (updater: (posts: Post[]) => Post[]) => void;
 }
 
 interface UseKeyboardNavReturn {
@@ -33,6 +34,7 @@ export function useKeyboardNav({
   posts,
   enabled = true,
   isAuthenticated = false,
+  onPostsChange,
 }: UseKeyboardNavOptions): UseKeyboardNavReturn {
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const [showHelp, setShowHelp] = useState(false);
@@ -122,8 +124,21 @@ export function useKeyboardNav({
           : api.post(`/posts/${post.id}/like`);
         action
           .then(() => {
-            post.is_liked = !post.is_liked;
-            post.like_count += post.is_liked ? 1 : -1;
+            if (!onPostsChange) return;
+            onPostsChange((currentPosts) =>
+              currentPosts.map((currentPost, index) => {
+                if (index !== focusedIndex) return currentPost;
+                const nextLiked = !currentPost.is_liked;
+                return {
+                  ...currentPost,
+                  is_liked: nextLiked,
+                  like_count: Math.max(
+                    0,
+                    currentPost.like_count + (nextLiked ? 1 : -1)
+                  ),
+                };
+              })
+            );
           })
           .catch(() => {})
           .finally(() => {
@@ -145,7 +160,17 @@ export function useKeyboardNav({
           : api.post(`/posts/${post.id}/bookmark`);
         action
           .then(() => {
-            post.is_bookmarked = !post.is_bookmarked;
+            if (!onPostsChange) return;
+            onPostsChange((currentPosts) =>
+              currentPosts.map((currentPost, index) =>
+                index === focusedIndex
+                  ? {
+                      ...currentPost,
+                      is_bookmarked: !currentPost.is_bookmarked,
+                    }
+                  : currentPost
+              )
+            );
           })
           .catch(() => {})
           .finally(() => {
@@ -154,7 +179,16 @@ export function useKeyboardNav({
         return;
       }
     },
-    [enabled, posts, focusedIndex, isAuthenticated, showHelp, router, scrollToPost]
+    [
+      enabled,
+      posts,
+      focusedIndex,
+      isAuthenticated,
+      showHelp,
+      router,
+      scrollToPost,
+      onPostsChange,
+    ]
   );
 
   useEffect(() => {

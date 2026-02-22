@@ -31,9 +31,18 @@ func AuthMiddleware(jwtSecret string, pool ...*pgxpool.Pool) func(http.Handler) 
 			// Check if user is banned (if DB pool is available)
 			if len(pool) > 0 && pool[0] != nil {
 				var banned bool
-				_ = pool[0].QueryRow(r.Context(),
-					"SELECT EXISTS(SELECT 1 FROM user_bans WHERE user_id=$1)", claims.UserID,
+				err = pool[0].QueryRow(r.Context(),
+					`SELECT EXISTS(
+						SELECT 1 FROM user_bans
+						WHERE user_id = $1
+						  AND (banned_until IS NULL OR banned_until > NOW())
+					)`,
+					claims.UserID,
 				).Scan(&banned)
+				if err != nil {
+					http.Error(w, `{"error":"failed to verify account status"}`, http.StatusServiceUnavailable)
+					return
+				}
 				if banned {
 					http.Error(w, `{"error":"account suspended"}`, http.StatusForbidden)
 					return

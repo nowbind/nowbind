@@ -86,6 +86,7 @@ export function Navbar() {
                     variant="ghost"
                     size="icon"
                     className="h-9 w-9 rounded-full"
+                    aria-label="Open account menu"
                   >
                     <Avatar className="h-7 w-7">
                       {user.avatar_url && (
@@ -143,6 +144,7 @@ export function Navbar() {
             size="icon"
             className="h-9 w-9 md:hidden"
             onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
           >
             {mobileOpen ? (
               <X className="h-4 w-4" />
