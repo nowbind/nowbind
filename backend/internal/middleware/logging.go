@@ -21,6 +21,6 @@ func Logging(next http.Handler) http.Handler {
 		start := time.Now()
 		wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 		next.ServeHTTP(wrapped, r)
-		log.Printf("%s %s %d %s", r.Method, r.URL.Path, wrapped.statusCode, time.Since(start))
+		log.Printf("%s %s %s %d %s", r.RemoteAddr, r.Method, r.URL.Path, wrapped.statusCode, time.Since(start))
 	})
 }
