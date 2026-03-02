@@ -12,6 +12,7 @@ import {
   Source_Sans_3,
   Fraunces,
   Manrope,
+  Cormorant_Garamond,
 } from "next/font/google";
 import "./globals.css";
 import { safeJsonLd } from "@/lib/utils";
@@ -103,6 +104,13 @@ const manrope = Manrope({
   variable: "--font-manrope",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700", "800"],
+});
+
+// 7. Cormorant Garamond (elegant high-contrast serif)
+const cormorantGaramond = Cormorant_Garamond({
+  variable: "--font-cormorant",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://nowbind.com";
@@ -212,7 +220,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${spaceGrotesk.variable} ${jetbrainsMono.variable} ${inter.variable} ${bitter.variable} ${playfairDisplay.variable} ${lora.variable} ${dmSans.variable} ${dmSerifDisplay.variable} ${libreBaskerville.variable} ${sourceSans3.variable} ${fraunces.variable} ${manrope.variable} font-sans antialiased`}
+        className={`${spaceGrotesk.variable} ${jetbrainsMono.variable} ${inter.variable} ${bitter.variable} ${playfairDisplay.variable} ${lora.variable} ${dmSans.variable} ${dmSerifDisplay.variable} ${libreBaskerville.variable} ${sourceSans3.variable} ${fraunces.variable} ${manrope.variable} ${cormorantGaramond.variable} font-sans antialiased`}
       >
         <Analytics />
         <ThemeProvider

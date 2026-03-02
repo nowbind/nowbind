@@ -37,11 +37,15 @@
      Pairing 6 — Fraunces + Manrope:
        --font-heading: var(--font-fraunces), Georgia, serif;
        --font-sans:    var(--font-manrope), system-ui, sans-serif;
+
+     Pairing 7 — Cormorant Garamond + Lora (ornate display serif + soft text serif):
+       --font-heading: var(--font-cormorant), Georgia, serif;
+       --font-sans:    var(--font-lora), Georgia, serif;
   ──────────────────────────────────────────────────────────── */
   /* --font-heading: var(--font-space-grotesk), system-ui, sans-serif;
   --font-sans: var(--font-space-grotesk), system-ui, sans-serif; */
-  --font-heading: var(--font-playfair), Georgia, serif;
-  --font-sans: var(--font-lora), Georgia, serif;
+  /* --font-heading: var(--font-playfair), Georgia, serif;
+  --font-sans: var(--font-lora), Georgia, serif; */
   --font-mono: "JetBrains Mono", "Fira Code", "Consolas", monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
