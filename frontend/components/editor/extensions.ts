@@ -9,7 +9,13 @@ import {
   HorizontalRule,
   Placeholder,
 } from "novel";
-import { Extension, InputRule, type Editor, type Range, type CommandProps } from "@tiptap/core";
+import {
+  Extension,
+  InputRule,
+  type Editor,
+  type Range,
+  type CommandProps,
+} from "@tiptap/core";
 import { NodeSelection } from "@tiptap/pm/state";
 import { Code } from "@tiptap/extension-code";
 import { ReactRenderer } from "@tiptap/react";
@@ -20,6 +26,10 @@ import { Callout } from "./extensions/callout";
 import { Bookmark } from "./extensions/bookmark";
 import { Embed } from "./extensions/embed";
 import { SlashCommandList, commandGroups } from "./slash-command-list";
+import Table from "@tiptap/extension-table";
+import TableRow from "@tiptap/extension-table-row";
+import TableCell from "@tiptap/extension-table-cell";
+import TableHeader from "@tiptap/extension-table-header";
 
 const lowlight = createLowlight(common);
 
@@ -33,7 +43,9 @@ const SlashCommand = Extension.create({
       suggestion: {
         char: "/",
         items: ({ query }: { query: string }) =>
-          allTitles.filter((t) => t.toLowerCase().includes(query.toLowerCase())),
+          allTitles.filter((t) =>
+            t.toLowerCase().includes(query.toLowerCase()),
+          ),
         command: ({
           editor,
           range,
@@ -136,7 +148,11 @@ const CustomCode = Code.extend({
 
           // Apply the code mark to the content (positions shift after the opening
           // backtick deletion, so content is now at openBacktickPos).
-          tr.addMark(openBacktickPos, openBacktickPos + content.length, type.create());
+          tr.addMark(
+            openBacktickPos,
+            openBacktickPos + content.length,
+            type.create(),
+          );
           tr.removeStoredMark(type);
         },
       }),
@@ -173,7 +189,10 @@ const FontSize = Extension.create({
       unsetFontSize:
         () =>
         ({ chain }: CommandProps) =>
-          chain().setMark("textStyle", { fontSize: null }).removeEmptyTextStyle().run(),
+          chain()
+            .setMark("textStyle", { fontSize: null })
+            .removeEmptyTextStyle()
+            .run(),
     } as any;
   },
 });
@@ -188,12 +207,14 @@ const ImageAlign = Extension.create({
         attributes: {
           dataAlign: {
             default: "center",
-            parseHTML: (element) => element.getAttribute("data-align") || "center",
+            parseHTML: (element) =>
+              element.getAttribute("data-align") || "center",
             renderHTML: (attributes) => {
               const align = attributes.dataAlign || "center";
               const styles: Record<string, string> = {
                 left: "display: block; margin-right: auto;",
-                center: "display: block; margin-left: auto; margin-right: auto;",
+                center:
+                  "display: block; margin-left: auto; margin-right: auto;",
                 right: "display: block; margin-left: auto;",
               };
               return {
@@ -212,7 +233,10 @@ const ImageAlign = Extension.create({
         (align: string) =>
         ({ tr, state, dispatch }: CommandProps) => {
           const { selection } = state;
-          const node = selection instanceof NodeSelection ? selection.node : state.doc.nodeAt(selection.from);
+          const node =
+            selection instanceof NodeSelection
+              ? selection.node
+              : state.doc.nodeAt(selection.from);
           if (node?.type.name === "image") {
             tr.setNodeMarkup(selection.from, undefined, {
               ...node.attrs,
@@ -238,7 +262,9 @@ const YoutubeResize = Extension.create({
           containerWidth: {
             default: "100%",
             parseHTML: (element) =>
-              element.getAttribute("data-width") || element.style?.maxWidth || "100%",
+              element.getAttribute("data-width") ||
+              element.style?.maxWidth ||
+              "100%",
             renderHTML: (attributes) => {
               const w = attributes.containerWidth || "100%";
               return {
@@ -260,7 +286,10 @@ const YoutubeResize = Extension.create({
         (width: string) =>
         ({ tr, state, dispatch }: CommandProps) => {
           const { selection } = state;
-          const node = selection instanceof NodeSelection ? selection.node : state.doc.nodeAt(selection.from);
+          const node =
+            selection instanceof NodeSelection
+              ? selection.node
+              : state.doc.nodeAt(selection.from);
           if (node?.type.name === "youtube") {
             tr.setNodeMarkup(selection.from, undefined, {
               ...node.attrs,
@@ -276,6 +305,12 @@ const YoutubeResize = Extension.create({
 });
 
 export const defaultExtensions = [
+  Table.configure({
+    resizable: true,
+  }),
+  TableRow,
+  TableHeader,
+  TableCell,
   StarterKit.configure({
     codeBlock: false,
     horizontalRule: false,
@@ -290,7 +325,8 @@ export const defaultExtensions = [
   }),
   TiptapLink.configure({
     HTMLAttributes: {
-      class: "text-foreground underline underline-offset-4 hover:text-muted-foreground cursor-pointer",
+      class:
+        "text-foreground underline underline-offset-4 hover:text-muted-foreground cursor-pointer",
     },
     openOnClick: false,
   }),

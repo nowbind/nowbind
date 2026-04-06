@@ -7,8 +7,10 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { LikeButton } from "@/components/social/like-button";
 import { BookmarkButton } from "@/components/social/bookmark-button";
 import { ShareButtons } from "@/components/social/share-buttons";
+import { PenLine } from "lucide-react";
 import { FollowButton } from "@/components/social/follow-button";
 import { Button } from "@/components/ui/button";
+import { TTSPlayer } from "@/components/post/tts-player";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { api } from "@/lib/api";
 import type { Post, User } from "@/lib/types";
@@ -23,7 +25,7 @@ export function PostHeader({ post }: PostHeaderProps) {
   const [liked, setLiked] = useState(post.is_liked ?? false);
   const [bookmarked, setBookmarked] = useState(post.is_bookmarked ?? false);
   const [authorFollowing, setAuthorFollowing] = useState(
-    post.author?.is_following ?? false
+    post.author?.is_following ?? false,
   );
 
   useEffect(() => {
@@ -85,7 +87,10 @@ export function PostHeader({ post }: PostHeaderProps) {
           >
             <Avatar className="h-8 w-8">
               {post.author.avatar_url && (
-                <AvatarImage src={post.author.avatar_url} alt={post.author.display_name || post.author.username} />
+                <AvatarImage
+                  src={post.author.avatar_url}
+                  alt={post.author.display_name || post.author.username}
+                />
               )}
               <AvatarFallback className="text-xs">
                 {post.author.display_name?.[0]?.toUpperCase() ||
@@ -121,10 +126,30 @@ export function PostHeader({ post }: PostHeaderProps) {
 
       <div className="flex items-center justify-between border-y py-2">
         <div className="flex items-center gap-1">
-          <LikeButton postId={post.id} initialLiked={liked} initialCount={post.like_count} />
+          <LikeButton
+            postId={post.id}
+            initialLiked={liked}
+            initialCount={post.like_count}
+          />
           <BookmarkButton postId={post.id} initialBookmarked={bookmarked} />
         </div>
-        <ShareButtons url={`/post/${post.slug}`} title={post.title} />
+        <div className="flex items-center gap-2">
+          {user && post.author && user.id === post.author.id && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-muted-foreground"
+              asChild
+            >
+              <Link href={`/editor/${post.slug}`}>
+                <PenLine className="h-4 w-4" />
+                <span className="hidden sm:inline">Edit</span>
+              </Link>
+            </Button>
+          )}
+          <TTSPlayer />
+          <ShareButtons url={`/post/${post.slug}`} title={post.title} />
+        </div>
       </div>
 
       {post.tags && post.tags.length > 0 && (

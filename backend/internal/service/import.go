@@ -3,6 +3,7 @@ package service
 import (
 	"archive/zip"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"regexp"
@@ -50,6 +51,9 @@ func (s *ImportService) ImportMediumZip(ctx context.Context, authorID string, zi
 
 	for _, f := range zr.File {
 		if f.FileInfo().IsDir() {
+			continue
+		}
+		if !strings.HasPrefix(strings.ToLower(f.Name), "posts/") {
 			continue
 		}
 		if !strings.HasSuffix(strings.ToLower(f.Name), ".html") {
@@ -107,6 +111,26 @@ func (s *ImportService) ImportMediumZip(ctx context.Context, authorID string, zi
 			Excerpt:       generateSummary(markdown, ""),
 			Status:        "draft",
 			ReadingTime:   pkg.EstimateReadingTime(markdown),
+		}
+
+		// Temporary TipTap skeleton so the editor can load without a blank page
+		rawJSON := map[string]interface{}{
+			"type": "doc",
+			"content": []map[string]interface{}{
+				{
+					"type": "paragraph",
+					"content": []map[string]interface{}{
+						{
+							"type": "text",
+							"text": "Imported content. You may need to copy/paste the original Markdown for rich editing.",
+						},
+					},
+				},
+			},
+		}
+		if b, err := json.Marshal(rawJSON); err == nil {
+			jsonStr := string(b)
+			post.ContentJSON = &jsonStr
 		}
 
 		post.AISummary = generateSummary(markdown, "")

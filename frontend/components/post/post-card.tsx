@@ -11,7 +11,11 @@ interface PostCardProps {
   "data-post-index"?: number;
 }
 
-export function PostCard({ post, focused, "data-post-index": postIndex }: PostCardProps) {
+export function PostCard({
+  post,
+  focused,
+  "data-post-index": postIndex,
+}: PostCardProps) {
   const publishDate = post.published_at
     ? new Date(post.published_at).toLocaleDateString("en-US", {
         year: "numeric",
@@ -25,12 +29,19 @@ export function PostCard({ post, focused, "data-post-index": postIndex }: PostCa
       data-post-index={postIndex}
       className={cn(
         "group border-b py-6 first:pt-0 last:border-b-0 transition-colors rounded-lg",
-        focused && "bg-accent/50 ring-1 ring-primary/20"
+        focused && "bg-accent/50 ring-1 ring-primary/20",
       )}
     >
       <div className="flex gap-4">
         <div className="min-w-0 flex-1">
-          <Link href={`/post/${post.slug}`} className="block space-y-2">
+          <Link
+            href={
+              post.status === "draft"
+                ? `/editor/${post.slug}`
+                : `/post/${post.slug}`
+            }
+            className="block space-y-2"
+          >
             <div className="flex items-center gap-2">
               {post.featured && (
                 <Star className="h-4 w-4 shrink-0 fill-yellow-400 text-yellow-400" />
@@ -63,7 +74,9 @@ export function PostCard({ post, focused, "data-post-index": postIndex }: PostCa
                       <AvatarImage src={post.author.avatar_url} alt="" />
                     )}
                     <AvatarFallback className="text-[9px]">
-                      {post.author.display_name?.[0]?.toUpperCase() || post.author.username?.[0]?.toUpperCase() || "U"}
+                      {post.author.display_name?.[0]?.toUpperCase() ||
+                        post.author.username?.[0]?.toUpperCase() ||
+                        "U"}
                     </AvatarFallback>
                   </Avatar>
                   <span className="whitespace-nowrap">
@@ -102,7 +115,10 @@ export function PostCard({ post, focused, "data-post-index": postIndex }: PostCa
               <div className="flex flex-wrap gap-1.5">
                 {post.tags.slice(0, 3).map((tag) => (
                   <Link key={tag.id} href={`/tag/${tag.slug}`}>
-                    <Badge variant="secondary" className="text-[11px] px-2 py-0.5">
+                    <Badge
+                      variant="secondary"
+                      className="text-[11px] px-2 py-0.5"
+                    >
                       {tag.name}
                     </Badge>
                   </Link>
@@ -115,7 +131,11 @@ export function PostCard({ post, focused, "data-post-index": postIndex }: PostCa
         {/* Feature image thumbnail */}
         {post.feature_image && (
           <Link
-            href={`/post/${post.slug}`}
+            href={
+              post.status === "draft"
+                ? `/editor/${post.slug}`
+                : `/post/${post.slug}`
+            }
             className="hidden shrink-0 sm:block"
           >
             <img

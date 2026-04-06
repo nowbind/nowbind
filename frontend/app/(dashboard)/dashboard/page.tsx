@@ -73,7 +73,10 @@ export default function DashboardPage() {
       router.push("/login");
       return;
     }
-    api.get<Tag[]>("/users/me/tags").then(setAllTags).catch(() => setAllTags([]));
+    api
+      .get<Tag[]>("/users/me/tags")
+      .then(setAllTags)
+      .catch(() => setAllTags([]));
   }, [user, authLoading, router]);
 
   useEffect(() => {
@@ -116,7 +119,7 @@ export default function DashboardPage() {
 
   const filteredPosts = debouncedSearch
     ? posts.filter((p) =>
-        p.title.toLowerCase().includes(debouncedSearch.toLowerCase())
+        p.title.toLowerCase().includes(debouncedSearch.toLowerCase()),
       )
     : posts;
 
@@ -124,7 +127,7 @@ export default function DashboardPage() {
     try {
       await api.post(`/posts/${id}/publish`);
       setPosts(
-        posts.map((p) => (p.id === id ? { ...p, status: "published" } : p))
+        posts.map((p) => (p.id === id ? { ...p, status: "published" } : p)),
       );
       toast.success("Post published");
     } catch {
@@ -182,12 +185,12 @@ export default function DashboardPage() {
     setBulkActing(true);
     try {
       await Promise.all(
-        Array.from(selectedIds).map((id) => api.post(`/posts/${id}/publish`))
+        Array.from(selectedIds).map((id) => api.post(`/posts/${id}/publish`)),
       );
       setPosts((prev) =>
         prev.map((p) =>
-          selectedIds.has(p.id) ? { ...p, status: "published" as const } : p
-        )
+          selectedIds.has(p.id) ? { ...p, status: "published" as const } : p,
+        ),
       );
       toast.success(`${selectedIds.size} post(s) published`);
       setSelectedIds(new Set());
@@ -202,12 +205,12 @@ export default function DashboardPage() {
     setBulkActing(true);
     try {
       await Promise.all(
-        Array.from(selectedIds).map((id) => api.post(`/posts/${id}/unpublish`))
+        Array.from(selectedIds).map((id) => api.post(`/posts/${id}/unpublish`)),
       );
       setPosts((prev) =>
         prev.map((p) =>
-          selectedIds.has(p.id) ? { ...p, status: "draft" as const } : p
-        )
+          selectedIds.has(p.id) ? { ...p, status: "draft" as const } : p,
+        ),
       );
       toast.success(`${selectedIds.size} post(s) unpublished`);
       setSelectedIds(new Set());
@@ -222,7 +225,7 @@ export default function DashboardPage() {
     setBulkActing(true);
     try {
       await Promise.all(
-        Array.from(selectedIds).map((id) => api.delete(`/posts/${id}`))
+        Array.from(selectedIds).map((id) => api.delete(`/posts/${id}`)),
       );
       setPosts((prev) => prev.filter((p) => !selectedIds.has(p.id)));
       toast.success(`${selectedIds.size} post(s) deleted`);
@@ -382,7 +385,10 @@ export default function DashboardPage() {
               <div className="flex items-center gap-3 px-4 py-1">
                 <input
                   type="checkbox"
-                  checked={selectedIds.size === filteredPosts.length && filteredPosts.length > 0}
+                  checked={
+                    selectedIds.size === filteredPosts.length &&
+                    filteredPosts.length > 0
+                  }
                   onChange={toggleSelectAll}
                   className="h-4 w-4 rounded border-input accent-primary"
                 />
@@ -397,7 +403,9 @@ export default function DashboardPage() {
                 <div
                   key={post.id}
                   className={`flex items-center gap-3 rounded-lg border p-4 ${
-                    selectedIds.has(post.id) ? "border-primary/50 bg-primary/5" : ""
+                    selectedIds.has(post.id)
+                      ? "border-primary/50 bg-primary/5"
+                      : ""
                   }`}
                 >
                   {/* Checkbox */}
@@ -423,16 +431,18 @@ export default function DashboardPage() {
                         <Star className="h-3.5 w-3.5 shrink-0 fill-yellow-400 text-yellow-400" />
                       )}
                       <Link
-                        href={`/post/${post.slug}`}
+                        href={
+                          post.status === "draft"
+                            ? `/editor/${post.slug}`
+                            : `/post/${post.slug}`
+                        }
                         className="truncate font-semibold hover:underline"
                       >
                         {post.title}
                       </Link>
                       <Badge
                         variant={
-                          post.status === "published"
-                            ? "default"
-                            : "secondary"
+                          post.status === "published" ? "default" : "secondary"
                         }
                         className="text-[10px]"
                       >
@@ -458,7 +468,9 @@ export default function DashboardPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => router.push(`/editor/${post.slug}`)}>
+                      <DropdownMenuItem
+                        onClick={() => router.push(`/editor/${post.slug}`)}
+                      >
                         <Edit3 className="mr-2 h-4 w-4" />
                         Edit
                       </DropdownMenuItem>
@@ -500,7 +512,8 @@ export default function DashboardPage() {
           <div className="flex w-full max-w-full items-center gap-2 overflow-x-auto border-t bg-background px-3 py-2 shadow-lg sm:w-auto sm:rounded-xl sm:border sm:px-4 sm:py-2.5">
             <CheckSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
             <span className="shrink-0 text-sm font-medium">
-              {selectedIds.size} <span className="hidden sm:inline">selected</span>
+              {selectedIds.size}{" "}
+              <span className="hidden sm:inline">selected</span>
             </span>
             <div className="mx-1 h-5 w-px shrink-0 bg-border sm:mx-2" />
             <Button
@@ -546,12 +559,16 @@ export default function DashboardPage() {
       )}
 
       {/* Delete confirmation dialog */}
-      <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+      <Dialog
+        open={!!deleteId}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Post</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this post? This action cannot be undone.
+              Are you sure you want to delete this post? This action cannot be
+              undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -571,14 +588,19 @@ export default function DashboardPage() {
           <DialogHeader>
             <DialogTitle>Delete {selectedIds.size} Posts</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete {selectedIds.size} post{selectedIds.size > 1 ? "s" : ""}? This action cannot be undone.
+              Are you sure you want to delete {selectedIds.size} post
+              {selectedIds.size > 1 ? "s" : ""}? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBulkDeleteOpen(false)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleBulkDelete} disabled={bulkActing}>
+            <Button
+              variant="destructive"
+              onClick={handleBulkDelete}
+              disabled={bulkActing}
+            >
               Delete {selectedIds.size} Post{selectedIds.size > 1 ? "s" : ""}
             </Button>
           </DialogFooter>

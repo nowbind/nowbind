@@ -96,7 +96,7 @@ export default function EditorPage() {
         // Create new draft
         const post = await api.post<{ id: string; slug: string }>(
           "/posts",
-          payload
+          payload,
         );
         draftIdRef.current = post.id;
         draftSlugRef.current = post.slug;
@@ -107,11 +107,15 @@ export default function EditorPage() {
     }
   }, []);
 
-  const { status: autosaveStatus, statusLabel, markDirty, markClean } =
-    useAutosave({
-      interval: 30_000,
-      onSave: performSave,
-    });
+  const {
+    status: autosaveStatus,
+    statusLabel,
+    markDirty,
+    markClean,
+  } = useAutosave({
+    interval: 30_000,
+    onSave: performSave,
+  });
 
   const handleFeatureImageUpload = async () => {
     const input = document.createElement("input");
@@ -147,7 +151,7 @@ export default function EditorPage() {
           feature_image: featureImage || undefined,
         });
         markClean();
-        router.push(`/post/${draftSlugRef.current || slug}`);
+        router.push(`/editor/${draftSlugRef.current || slug}`);
       } else {
         const post = await api.post<{ slug: string }>("/posts", {
           title,
@@ -160,7 +164,7 @@ export default function EditorPage() {
           feature_image: featureImage || undefined,
         });
         markClean();
-        router.push(`/post/${post.slug}`);
+        router.push(`/editor/${post.slug}`);
       }
     } catch {
       toast.error("Failed to save draft");
@@ -303,9 +307,7 @@ export default function EditorPage() {
                   className="mb-6 w-full max-h-96 rounded-lg object-cover"
                 />
               )}
-              <h1 className="text-4xl font-bold">
-                {title || "Untitled Post"}
-              </h1>
+              <h1 className="text-4xl font-bold">{title || "Untitled Post"}</h1>
               {subtitle && (
                 <p className="text-xl text-muted-foreground">{subtitle}</p>
               )}

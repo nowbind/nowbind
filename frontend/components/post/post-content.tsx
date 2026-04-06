@@ -9,11 +9,24 @@ import rehypeSanitize from "rehype-sanitize";
 import { CodeBlock } from "@/components/post/code-block";
 import type { Components } from "react-markdown";
 import { generateHTML, Extension } from "@tiptap/core";
-import { StarterKit, TiptapImage, TiptapLink, TiptapUnderline, TextStyle, CodeBlockLowlight, HorizontalRule, Youtube } from "novel";
+import {
+  StarterKit,
+  TiptapImage,
+  TiptapLink,
+  TiptapUnderline,
+  TextStyle,
+  CodeBlockLowlight,
+  HorizontalRule,
+  Youtube,
+} from "novel";
 import { common, createLowlight } from "lowlight";
 import { Callout } from "@/components/editor/extensions/callout";
 import { Bookmark } from "@/components/editor/extensions/bookmark";
 import { Embed } from "@/components/editor/extensions/embed";
+import Table from "@tiptap/extension-table";
+import TableRow from "@tiptap/extension-table-row";
+import TableCell from "@tiptap/extension-table-cell";
+import TableHeader from "@tiptap/extension-table-header";
 
 const lowlight = createLowlight(common);
 
@@ -21,70 +34,90 @@ const lowlight = createLowlight(common);
 const FontSizeRender = Extension.create({
   name: "fontSize",
   addGlobalAttributes() {
-    return [{
-      types: ["textStyle"],
-      attributes: {
-        fontSize: {
-          default: null,
-          parseHTML: (element) => element.style.fontSize || null,
-          renderHTML: (attributes) => {
-            if (!attributes.fontSize) return {};
-            return { style: `font-size: ${attributes.fontSize}` };
+    return [
+      {
+        types: ["textStyle"],
+        attributes: {
+          fontSize: {
+            default: null,
+            parseHTML: (element) => element.style.fontSize || null,
+            renderHTML: (attributes) => {
+              if (!attributes.fontSize) return {};
+              return { style: `font-size: ${attributes.fontSize}` };
+            },
           },
         },
       },
-    }];
+    ];
   },
 });
 
 const ImageAlignRender = Extension.create({
   name: "imageAlign",
   addGlobalAttributes() {
-    return [{
-      types: ["image"],
-      attributes: {
-        dataAlign: {
-          default: "center",
-          parseHTML: (element) => element.getAttribute("data-align") || "center",
-          renderHTML: (attributes) => {
-            const align = attributes.dataAlign || "center";
-            const styles: Record<string, string> = {
-              left: "display: block; margin-right: auto;",
-              center: "display: block; margin-left: auto; margin-right: auto;",
-              right: "display: block; margin-left: auto;",
-            };
-            return { "data-align": align, style: styles[align] || styles.center };
+    return [
+      {
+        types: ["image"],
+        attributes: {
+          dataAlign: {
+            default: "center",
+            parseHTML: (element) =>
+              element.getAttribute("data-align") || "center",
+            renderHTML: (attributes) => {
+              const align = attributes.dataAlign || "center";
+              const styles: Record<string, string> = {
+                left: "display: block; margin-right: auto;",
+                center:
+                  "display: block; margin-left: auto; margin-right: auto;",
+                right: "display: block; margin-left: auto;",
+              };
+              return {
+                "data-align": align,
+                style: styles[align] || styles.center,
+              };
+            },
           },
         },
       },
-    }];
+    ];
   },
 });
 
 const YoutubeResizeRender = Extension.create({
   name: "youtubeResize",
   addGlobalAttributes() {
-    return [{
-      types: ["youtube"],
-      attributes: {
-        containerWidth: {
-          default: "100%",
-          parseHTML: (element) =>
-            element.getAttribute("data-width") || element.style?.maxWidth || "100%",
-          renderHTML: (attributes) => {
-            const w = attributes.containerWidth || "100%";
-            return {
-              "data-width": w,
-              style: w === "100%" ? "" : `max-width: ${w}; margin-left: auto; margin-right: auto;`,
-            };
+    return [
+      {
+        types: ["youtube"],
+        attributes: {
+          containerWidth: {
+            default: "100%",
+            parseHTML: (element) =>
+              element.getAttribute("data-width") ||
+              element.style?.maxWidth ||
+              "100%",
+            renderHTML: (attributes) => {
+              const w = attributes.containerWidth || "100%";
+              return {
+                "data-width": w,
+                style:
+                  w === "100%"
+                    ? ""
+                    : `max-width: ${w}; margin-left: auto; margin-right: auto;`,
+              };
+            },
           },
         },
       },
-    }];
+    ];
   },
 });
 
 const tiptapExtensions = [
+  Table.configure({ resizable: true }),
+  TableRow,
+  TableHeader,
+  TableCell,
   StarterKit.configure({ codeBlock: false, horizontalRule: false }),
   TiptapImage,
   TiptapLink,
@@ -116,7 +149,11 @@ interface PostContentProps {
   contentFormat?: "markdown" | "tiptap";
 }
 
-export function PostContent({ content, contentJSON, contentFormat }: PostContentProps) {
+export function PostContent({
+  content,
+  contentJSON,
+  contentFormat,
+}: PostContentProps) {
   const [mounted, setMounted] = useState(false);
   const [tiptapHTML, setTiptapHTML] = useState<string | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -159,9 +196,31 @@ export function PostContent({ content, contentJSON, contentFormat }: PostContent
 
     const purify = createDOMPurify(window);
     const clean = purify.sanitize(tiptapHTML, {
-      ADD_TAGS: ["iframe"],
-      ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "src", "sandbox", "loading"],
-      ALLOWED_URI_REGEXP: /^(?:(?:https?):\/\/|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
+      ADD_TAGS: [
+        "iframe",
+        "table",
+        "thead",
+        "tbody",
+        "tr",
+        "th",
+        "td",
+        "colgroup",
+        "col",
+      ],
+      ADD_ATTR: [
+        "allow",
+        "allowfullscreen",
+        "frameborder",
+        "scrolling",
+        "src",
+        "sandbox",
+        "loading",
+        "colspan",
+        "rowspan",
+        "data-colwidth",
+      ],
+      ALLOWED_URI_REGEXP:
+        /^(?:(?:https?):\/\/|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
     });
 
     const div = window.document.createElement("div");
@@ -169,14 +228,23 @@ export function PostContent({ content, contentJSON, contentFormat }: PostContent
     div.querySelectorAll("iframe").forEach((iframe) => {
       const src = iframe.getAttribute("src") || "";
       const allowedDomains = [
-        "youtube.com", "www.youtube.com", "youtube-nocookie.com", "www.youtube-nocookie.com",
-        "twitter.com", "x.com", "platform.twitter.com",
+        "youtube.com",
+        "www.youtube.com",
+        "youtube-nocookie.com",
+        "www.youtube-nocookie.com",
+        "twitter.com",
+        "x.com",
+        "platform.twitter.com",
         "codepen.io",
         "gist.github.com",
       ];
       try {
         const url = new URL(src);
-        if (!allowedDomains.some((d) => url.hostname === d || url.hostname.endsWith("." + d))) {
+        if (
+          !allowedDomains.some(
+            (d) => url.hostname === d || url.hostname.endsWith("." + d),
+          )
+        ) {
           iframe.remove();
         }
       } catch {
@@ -190,8 +258,12 @@ export function PostContent({ content, contentJSON, contentFormat }: PostContent
   if (renderedTiptapHTML) {
     return (
       <div
+        id="article-content"
         className="tiptap-content"
-        ref={(el) => { contentRef.current = el; addHeadingIds(el); }}
+        ref={(el) => {
+          contentRef.current = el;
+          addHeadingIds(el);
+        }}
         suppressHydrationWarning
         dangerouslySetInnerHTML={{ __html: renderedTiptapHTML }}
       />
@@ -200,11 +272,18 @@ export function PostContent({ content, contentJSON, contentFormat }: PostContent
 
   // Heading component that auto-generates IDs for TOC linking
   const createHeading = (level: 2 | 3) => {
-    const HeadingComponent = ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => {
+    const HeadingComponent = ({
+      children,
+      ...props
+    }: React.HTMLAttributes<HTMLHeadingElement>) => {
       const text = typeof children === "string" ? children : String(children);
       const id = slugify(text);
       const Tag = `h${level}` as const;
-      return <Tag id={id} {...props}>{children}</Tag>;
+      return (
+        <Tag id={id} {...props}>
+          {children}
+        </Tag>
+      );
     };
     HeadingComponent.displayName = `H${level}`;
     return HeadingComponent;
@@ -237,7 +316,7 @@ export function PostContent({ content, contentJSON, contentFormat }: PostContent
     : {};
 
   return (
-    <div className="markdown-content" ref={contentRef}>
+    <div id="article-content" className="markdown-content" ref={contentRef}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw, rehypeSanitize]}

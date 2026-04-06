@@ -107,7 +107,10 @@ export default async function PostPage({ params }: Props) {
           </div>
         </div>
 
-        <div data-post-extras className="mx-auto max-w-3xl space-y-12 px-4 pb-12">
+        <div
+          data-post-extras
+          className="mx-auto max-w-3xl space-y-12 px-4 pb-12"
+        >
           <CommentSection postId={post.id} initialCount={post.comment_count} />
           <RelatedPosts slug={post.slug} />
         </div>
