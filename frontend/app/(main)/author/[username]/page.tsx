@@ -13,7 +13,7 @@ interface Props {
 async function getAuthor(username: string): Promise<User | null> {
   try {
     const res = await fetch(`${API_URL}/users/${username}`, {
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!res.ok) return null;
     return res.json();
@@ -25,7 +25,7 @@ async function getAuthor(username: string): Promise<User | null> {
 async function getAuthorPosts(username: string): Promise<Post[]> {
   try {
     const res = await fetch(`${API_URL}/users/${username}/posts`, {
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (!res.ok) return [];
     const data: PaginatedResponse<Post> = await res.json();

@@ -122,15 +122,13 @@ func (r *UserRepository) UpsertByOAuth(ctx context.Context, user *model.User) er
 		`INSERT INTO users (email, username, display_name, avatar_url, oauth_provider, oauth_id)
 		 VALUES ($1, $2, $3, $4, $5, $6)
 		 ON CONFLICT (email) DO UPDATE SET
-		   display_name = COALESCE(NULLIF(EXCLUDED.display_name, ''), users.display_name),
-		   avatar_url = COALESCE(NULLIF(EXCLUDED.avatar_url, ''), users.avatar_url),
 		   oauth_provider = EXCLUDED.oauth_provider,
 		   oauth_id = EXCLUDED.oauth_id,
 		   updated_at = NOW()
-		 RETURNING id, username, created_at, updated_at`,
+		 RETURNING id, username, display_name, avatar_url, created_at, updated_at`,
 		user.Email, user.Username, user.DisplayName, user.AvatarURL,
 		user.OAuthProvider, user.OAuthID,
-	).Scan(&user.ID, &user.Username, &user.CreatedAt, &user.UpdatedAt)
+	).Scan(&user.ID, &user.Username, &user.DisplayName, &user.AvatarURL, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		return err
 	}
