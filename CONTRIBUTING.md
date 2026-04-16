@@ -23,10 +23,12 @@ cd backend
 cp .env.example .env
 ```
 
-Edit `backend/.env` and set **only** `JWT_SECRET` (min 32 characters). Everything else has working defaults:
+Edit `backend/.env` and set `JWT_SECRET` (min 32 characters).
+If you want one-click local sign-in, also set `DEV_LOGIN=true`:
 
 ```
 JWT_SECRET=your-secret-key-at-least-32-characters-long
+DEV_LOGIN=true
 ```
 
 ```bash
@@ -47,7 +49,7 @@ npm run dev                  # starts on :3000
 
 Open `http://localhost:3000/login`. Click the **"Dev Login (no keys needed)"** button at the top of the page. You're instantly logged in as `dev@localhost` -- no OAuth, no email verification.
 
-> Dev Login is only available when `ENVIRONMENT=development` (backend, the default) and `NODE_ENV=development` (frontend, the default with `npm run dev`). It returns 404 in production.
+> Dev Login is only available when the backend has `DEV_LOGIN=true` (exact lowercase `true`). If it is unset/false, the button is hidden and the endpoint returns 404.
 
 ### Optional: Full Auth Setup
 
