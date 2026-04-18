@@ -88,6 +88,25 @@ export default function StatsPage() {
     { label: "90d", value: "90" },
   ];
 
+  // Theme tokens are OKLCH values in globals.css, so use raw CSS vars directly.
+  const chartPalette = {
+    views: "var(--primary)",
+    ai: "var(--chart-2)",
+    grid: "var(--border)",
+    axisText: "var(--muted-foreground)",
+    tooltipBg: "var(--popover)",
+    tooltipBorder: "var(--border)",
+    tooltipText: "var(--popover-foreground)",
+  } as const;
+
+  const tooltipContentStyle = {
+    backgroundColor: chartPalette.tooltipBg,
+    border: `1px solid ${chartPalette.tooltipBorder}`,
+    borderRadius: "8px",
+    fontSize: "13px",
+    color: chartPalette.tooltipText,
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar />
@@ -144,43 +163,33 @@ export default function StatsPage() {
                       <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                         <defs>
                           <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                            <stop offset="5%" stopColor={chartPalette.views} stopOpacity={0.3} />
+                            <stop offset="95%" stopColor={chartPalette.views} stopOpacity={0} />
                           </linearGradient>
                           <linearGradient id="colorAI" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="hsl(var(--chart-2, 160 60% 45%))" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="hsl(var(--chart-2, 160 60% 45%))" stopOpacity={0} />
+                            <stop offset="5%" stopColor={chartPalette.ai} stopOpacity={0.3} />
+                            <stop offset="95%" stopColor={chartPalette.ai} stopOpacity={0} />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <CartesianGrid strokeDasharray="3 3" stroke={chartPalette.grid} />
                         <XAxis
                           dataKey="date"
-                          tick={{ fontSize: 12 }}
-                          className="text-muted-foreground"
+                          tick={{ fontSize: 12, fill: chartPalette.axisText }}
                           tickLine={false}
                           axisLine={false}
                         />
                         <YAxis
-                          tick={{ fontSize: 12 }}
-                          className="text-muted-foreground"
+                          tick={{ fontSize: 12, fill: chartPalette.axisText }}
                           tickLine={false}
                           axisLine={false}
                           width={40}
                         />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "hsl(var(--popover))",
-                            border: "1px solid hsl(var(--border))",
-                            borderRadius: "8px",
-                            fontSize: "13px",
-                            color: "hsl(var(--popover-foreground))",
-                          }}
-                        />
+                        <Tooltip contentStyle={tooltipContentStyle} />
                         <Area
                           type="monotone"
                           dataKey="views"
                           name="Views"
-                          stroke="hsl(var(--primary))"
+                          stroke={chartPalette.views}
                           fillOpacity={1}
                           fill="url(#colorViews)"
                           strokeWidth={2}
@@ -189,7 +198,7 @@ export default function StatsPage() {
                           type="monotone"
                           dataKey="ai"
                           name="AI Views"
-                          stroke="hsl(var(--chart-2, 160 60% 45%))"
+                          stroke={chartPalette.ai}
                           fillOpacity={1}
                           fill="url(#colorAI)"
                           strokeWidth={2}
@@ -198,11 +207,11 @@ export default function StatsPage() {
                     </ResponsiveContainer>
                     <div className="mt-3 flex items-center justify-center gap-6 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1.5">
-                        <div className="h-2.5 w-2.5 rounded-full bg-primary" />
+                        <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: chartPalette.views }} />
                         <span>Views</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "hsl(160, 60%, 45%)" }} />
+                        <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: chartPalette.ai }} />
                         <span>AI Views</span>
                       </div>
                     </div>
@@ -221,11 +230,10 @@ export default function StatsPage() {
                         layout="vertical"
                         margin={{ top: 0, right: 10, left: 0, bottom: 0 }}
                       >
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" horizontal={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={chartPalette.grid} horizontal={false} />
                         <XAxis
                           type="number"
-                          tick={{ fontSize: 12 }}
-                          className="text-muted-foreground"
+                          tick={{ fontSize: 12, fill: chartPalette.axisText }}
                           tickLine={false}
                           axisLine={false}
                         />
@@ -233,21 +241,12 @@ export default function StatsPage() {
                           type="category"
                           dataKey="name"
                           width={180}
-                          tick={{ fontSize: 11 }}
-                          className="text-muted-foreground"
+                          tick={{ fontSize: 11, fill: chartPalette.axisText }}
                           tickLine={false}
                           axisLine={false}
                         />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "hsl(var(--popover))",
-                            border: "1px solid hsl(var(--border))",
-                            borderRadius: "8px",
-                            fontSize: "13px",
-                            color: "hsl(var(--popover-foreground))",
-                          }}
-                        />
-                        <Bar dataKey="views" name="Views" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                        <Tooltip contentStyle={tooltipContentStyle} />
+                        <Bar dataKey="views" name="Views" fill={chartPalette.views} radius={[0, 4, 4, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
