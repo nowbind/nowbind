@@ -12,7 +12,7 @@ class ApiClient {
   private async request<T>(
     path: string,
     options: RequestInit = {},
-    opts?: { noRedirect?: boolean }
+    opts?: { noRedirect?: boolean; skipRefresh?: boolean }
   ): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     const headers: HeadersInit = {
@@ -46,6 +46,10 @@ class ApiClient {
     }
 
     if (res.status === 401) {
+      if (opts?.skipRefresh) {
+        throw new ApiError(401, "Unauthorized", {});
+      }
+
       // Try refreshing the token (with mutex to prevent concurrent refreshes)
       const refreshed = await this.refreshWithLock();
       if (refreshed) {
@@ -140,7 +144,7 @@ class ApiClient {
   /** GET without redirecting to /login on 401 - use for auth checks on public pages */
   getSilent<T>(path: string, params?: Record<string, string>): Promise<T> {
     const query = params ? "?" + new URLSearchParams(params).toString() : "";
-    return this.request<T>(`${path}${query}`, {}, { noRedirect: true });
+    return this.request<T>(`${path}${query}`, {}, { noRedirect: true, skipRefresh: true });
   }
 
   post<T>(path: string, body?: unknown): Promise<T> {

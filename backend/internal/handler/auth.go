@@ -343,7 +343,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetUserID(r.Context())
 	if userID == "" {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
@@ -451,14 +451,26 @@ func (h *AuthHandler) DevLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Email string `json:"email"`
+		Email    string `json:"email"`
+		Username string `json:"username"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Email == "" {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		req = struct {
+			Email    string `json:"email"`
+			Username string `json:"username"`
+		}{}
+	}
+
+	if strings.TrimSpace(req.Email) == "" && strings.TrimSpace(req.Username) == "" {
 		req.Email = "dev@localhost"
 	}
 
-	user, session, accessToken, err := h.auth.DevLogin(r.Context(), req.Email)
+	user, session, accessToken, err := h.auth.DevLogin(r.Context(), req.Email, req.Username)
 	if err != nil {
+		if errors.Is(err, service.ErrInvalidDevUsername) {
+			writeError(w, http.StatusBadRequest, "invalid username")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "dev login failed")
 		return
 	}

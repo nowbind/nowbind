@@ -129,7 +129,7 @@ export function Navbar() {
                     <Link href="/import">Import</Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={logout}>Log out</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => { void logout(); }}>Log out</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </>

@@ -23,7 +23,12 @@ type AuthService struct {
 	email    *EmailService
 }
 
-var ErrMagicLinkDelivery = errors.New("magic link delivery failed")
+const maxDevUsernameLength = 50
+
+var (
+	ErrMagicLinkDelivery  = errors.New("magic link delivery failed")
+	ErrInvalidDevUsername = errors.New("invalid dev username")
+)
 
 func NewAuthService(users *repository.UserRepository, sessions *repository.SessionRepository, secret string, email *EmailService) *AuthService {
 	return &AuthService{users: users, sessions: sessions, secret: secret, email: email}
@@ -283,21 +288,47 @@ func (s *AuthService) HandleGitHubCallback(ctx context.Context, code, clientID, 
 	return user, session, accessToken, nil
 }
 
-// DevLogin creates or finds a user by email and issues tokens directly,
+// DevLogin creates or finds a user and issues tokens directly,
 // bypassing OAuth and email verification. For local development only.
-func (s *AuthService) DevLogin(ctx context.Context, email string) (*model.User, *model.Session, string, error) {
+func (s *AuthService) DevLogin(ctx context.Context, email, username string) (*model.User, *model.Session, string, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
+	username = strings.TrimSpace(username)
+
+	var desiredUsername string
+	if username != "" {
+		desiredUsername = pkg.Slugify(username)
+		if desiredUsername == "" {
+			return nil, nil, "", ErrInvalidDevUsername
+		}
+		desiredUsername = truncateDevUsername(desiredUsername)
+		email = fmt.Sprintf("dev+%s@localhost", desiredUsername)
+	}
+
+	if email == "" {
+		email = "dev@localhost"
+	}
 
 	user, err := s.users.GetByEmail(ctx, email)
 	if err != nil {
 		return nil, nil, "", err
 	}
 	if user == nil {
-		username := strings.Split(email, "@")[0]
-		username = pkg.Slugify(username)
+		baseUsername := desiredUsername
+		if baseUsername == "" {
+			baseUsername = pkg.Slugify(strings.Split(email, "@")[0])
+		}
+		if baseUsername == "" {
+			baseUsername = "dev-user"
+		}
+
+		availableUsername, err := s.nextAvailableDevUsername(ctx, baseUsername)
+		if err != nil {
+			return nil, nil, "", err
+		}
+
 		user = &model.User{
 			Email:       email,
-			Username:    username,
+			Username:    availableUsername,
 			DisplayName: "Dev User",
 		}
 		if err := s.users.Create(ctx, user); err != nil {
@@ -316,6 +347,46 @@ func (s *AuthService) DevLogin(ctx context.Context, email string) (*model.User, 
 	}
 
 	return user, session, accessToken, nil
+}
+
+func (s *AuthService) nextAvailableDevUsername(ctx context.Context, base string) (string, error) {
+	base = truncateDevUsername(base)
+	if base == "" {
+		base = "dev-user"
+	}
+
+	for i := 1; i <= 1000; i++ {
+		candidate := base
+		if i > 1 {
+			suffix := fmt.Sprintf("-%d", i)
+			maxBaseLen := maxDevUsernameLength - len(suffix)
+			if maxBaseLen < 1 {
+				maxBaseLen = 1
+			}
+			trimmedBase := base
+			if len(trimmedBase) > maxBaseLen {
+				trimmedBase = trimmedBase[:maxBaseLen]
+			}
+			candidate = trimmedBase + suffix
+		}
+
+		existing, err := s.users.GetByUsername(ctx, candidate)
+		if err != nil {
+			return "", err
+		}
+		if existing == nil {
+			return candidate, nil
+		}
+	}
+
+	return "", fmt.Errorf("allocating unique dev username")
+}
+
+func truncateDevUsername(username string) string {
+	if len(username) > maxDevUsernameLength {
+		return username[:maxDevUsernameLength]
+	}
+	return username
 }
 
 func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (*model.User, *model.Session, string, error) {

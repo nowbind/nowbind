@@ -47,7 +47,7 @@ npm run dev                  # starts on :3000
 
 ### 3. Log in with Dev Login
 
-Open `http://localhost:3000/login`. Click the **"Dev Login (no keys needed)"** button at the top of the page. You're instantly logged in as `dev@localhost` -- no OAuth, no email verification.
+Open `http://localhost:3000/login`. Enter a username in the dev login field, then click **"Dev Login (no keys needed)"**. Each username maps to its own dev account, so you can switch between multiple local users for testing views/stats.
 
 > Dev Login is only available when the backend has `DEV_LOGIN=true` (exact lowercase `true`). If it is unset/false, the button is hidden and the endpoint returns 404.
 

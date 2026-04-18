@@ -84,22 +84,25 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 		})) // 1MB default body limit with explicit upload overrides
 		// Auth (strict rate limit: 10 req/min per IP)
 		r.Route("/auth", func(r chi.Router) {
-			r.Use(middleware.AuthRateLimit())
-			r.Post("/magic-link", authH.SendMagicLink)
-			r.Get("/magic-link/verify", authH.VerifyMagicLink)
-			r.Post("/refresh", authH.Refresh)
-			r.Post("/logout", authH.Logout)
-			r.With(middleware.AuthMiddleware(cfg.JWTSecret, pool)).Get("/me", authH.Me)
-
-			// OAuth
-			r.Get("/oauth/google", authH.GoogleLogin)
-			r.Get("/oauth/google/callback", authH.GoogleCallback)
-			r.Get("/oauth/github", authH.GitHubLogin)
-			r.Get("/oauth/github/callback", authH.GitHubCallback)
-
 			// Dev-only login (requires DEV_LOGIN=true)
 			r.Get("/dev-login/status", authH.DevLoginStatus)
 			r.Post("/dev-login", authH.DevLogin)
+			r.With(middleware.OptionalAuth(cfg.JWTSecret)).Get("/me/silent", authH.Me)
+			r.With(middleware.OptionalAuth(cfg.JWTSecret)).Get("/me", authH.Me)
+
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.AuthRateLimit())
+				r.Post("/magic-link", authH.SendMagicLink)
+				r.Get("/magic-link/verify", authH.VerifyMagicLink)
+				r.Post("/refresh", authH.Refresh)
+				r.Post("/logout", authH.Logout)
+
+				// OAuth
+				r.Get("/oauth/google", authH.GoogleLogin)
+				r.Get("/oauth/google/callback", authH.GoogleCallback)
+				r.Get("/oauth/github", authH.GitHubLogin)
+				r.Get("/oauth/github/callback", authH.GitHubCallback)
+			})
 		})
 
 		// Posts (public)

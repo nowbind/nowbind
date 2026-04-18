@@ -24,8 +24,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUser = useCallback(async () => {
     try {
-      const data = await api.getSilent<User>("/auth/me");
-      setUser(data);
+      const data = await api.getSilent<User>("/auth/me/silent");
+      setUser(data || null);
     } catch {
       setUser(null);
     } finally {
@@ -44,13 +44,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // continues delivering notifications after logout (or to a new login).
     try {
       if ("serviceWorker" in navigator && "PushManager" in window) {
-        const reg = await navigator.serviceWorker.ready;
-        const sub = await reg.pushManager.getSubscription();
-        if (sub) {
-          // Remove from server first (still authenticated at this point)
-          await api.post("/notifications/unsubscribe", { endpoint: sub.endpoint });
-          // Then revoke the browser-level subscription
-          await sub.unsubscribe();
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg) {
+          const sub = await reg.pushManager.getSubscription();
+          if (sub) {
+            // Remove from server first (still authenticated at this point)
+            await api.post("/notifications/unsubscribe", { endpoint: sub.endpoint });
+            // Then revoke the browser-level subscription
+            await sub.unsubscribe();
+          }
         }
       }
     } catch {

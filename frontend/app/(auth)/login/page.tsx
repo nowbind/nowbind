@@ -53,6 +53,7 @@ function LoginContent() {
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [devLoading, setDevLoading] = useState(false);
+  const [devUsername, setDevUsername] = useState("");
   const [devLoginAvailable, setDevLoginAvailable] = useState(false);
   const [error, setError] = useState(
     oauthError ? "Authentication failed. Please try again." : ""
@@ -61,7 +62,20 @@ function LoginContent() {
   useEffect(() => {
     api.get<{ enabled: boolean }>("/auth/dev-login/status")
       .then((res: { enabled: boolean }) => setDevLoginAvailable(res.enabled))
-      .catch(() => setDevLoginAvailable(false));
+      .catch((err: unknown) => {
+        const status =
+          err && typeof err === "object" && "status" in err
+            ? (err as ApiError).status
+            : 0;
+
+        // Keep the control visible on transient throttling in local dev.
+        if (status === 429) {
+          setDevLoginAvailable(true);
+          return;
+        }
+
+        setDevLoginAvailable(false);
+      });
   }, []);
 
   useEffect(() => {
@@ -120,32 +134,54 @@ function LoginContent() {
 
         {devLoginAvailable && (
           <>
-            <Button
-              variant="default"
-              className="w-full"
-              disabled={devLoading}
-              onClick={async () => {
-                setDevLoading(true);
-                setError("");
-                try {
-                  const res = await api.post("/auth/dev-login", { email: "dev@localhost" });
-                  if (res) {
-                    window.location.href = "/explore";
+            <div className="space-y-2">
+              <Input
+                type="text"
+                placeholder="dev username (e.g. alice)"
+                value={devUsername}
+                onChange={(e) => setDevUsername(e.target.value)}
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+              />
+              <Button
+                variant="default"
+                className="w-full"
+                disabled={devLoading}
+                onClick={async () => {
+                  const normalizedUsername = devUsername.trim();
+                  if (!normalizedUsername) {
+                    setError("Enter a username for dev login.");
+                    return;
                   }
-                } catch {
-                  setError("Dev login failed. Is the backend running?");
-                } finally {
-                  setDevLoading(false);
-                }
-              }}
-            >
-              {devLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Code className="mr-2 h-4 w-4" />
-              )}
-              Dev Login (no keys needed)
-            </Button>
+
+                  setDevLoading(true);
+                  setError("");
+                  try {
+                    const res = await api.post("/auth/dev-login", { username: normalizedUsername });
+                    if (res) {
+                      window.location.href = "/explore";
+                    }
+                  } catch (err: unknown) {
+                    if (err && typeof err === "object" && "message" in err) {
+                      const message = (err as ApiError).message || "";
+                      setError(message || "Dev login failed. Is the backend running?");
+                    } else {
+                      setError("Dev login failed. Is the backend running?");
+                    }
+                  } finally {
+                    setDevLoading(false);
+                  }
+                }}
+              >
+                {devLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Code className="mr-2 h-4 w-4" />
+                )}
+                Dev Login (no keys needed)
+              </Button>
+            </div>
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
