@@ -1,6 +1,5 @@
 "use client";
 
-import { VoiceInput } from "./voice-input";
 import { useState, useEffect, useCallback } from "react";
 import type { Editor } from "@tiptap/core";
 import {
@@ -344,11 +343,7 @@ export function EditorToolbar({ editor }: { editor: Editor }) {
         >
           <ImageIcon className="h-3.5 w-3.5" />
         </ToolbarButton>
-        {/* Voice Input Button */}
-<VoiceInput onTranscribe={(text) => {
-  editor.chain().focus().insertContent(text).run();
-}} />
       </div>
     </TooltipProvider>
   );
-}
+}          
