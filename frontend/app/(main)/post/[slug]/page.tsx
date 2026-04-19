@@ -1,3 +1,4 @@
+import { TTSControls } from "@/components/tts-controls";
 import { notFound } from "next/navigation";
 import { API_URL, SITE_URL } from "@/lib/constants";
 import { safeJsonLd } from "@/lib/utils";
@@ -86,21 +87,25 @@ export default async function PostPage({ params }: Props) {
           <div className="hidden lg:block" />
 
           {/* Main article column */}
-          <div>
-            <article>
-              <PostHeader post={post} />
-              {/* Mobile TOC (hidden on desktop) */}
-              <div data-toc>
-                <TableOfContents variant="mobile" />
-              </div>
-              <PostContent
-                content={post.content}
-                contentJSON={post.content_json}
-                contentFormat={post.content_format}
-              />
-            </article>
-          </div>
-
+<div>
+    <article>
+        {/* TTS Controls - Read Aloud */}
+        <TTSControls text={post.content} />
+        
+        <PostHeader post={post} />
+        
+        {/* Mobile TOC (hidden on desktop) */}
+        <div data-toc>
+            <TableOfContents variant="mobile" />
+        </div>
+        
+        <PostContent
+            content={post.content}
+            contentJSON={post.content_json}
+            contentFormat={post.content_format}
+        />
+    </article>
+</div>
           {/* Desktop TOC sidebar (hidden on mobile) */}
           <div data-toc>
             <TableOfContents variant="desktop" />
