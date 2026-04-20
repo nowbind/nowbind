@@ -22,6 +22,8 @@ import {
   Github,
   Code2,
   Globe,
+  Sparkles,
+  Wand2,
 } from "lucide-react";
 
 import type { Editor, Range } from "@tiptap/core";
@@ -39,6 +41,29 @@ interface CommandGroup {
 }
 
 export const commandGroups: CommandGroup[] = [
+  {
+    heading: "AI Assistant",
+    items: [
+      {
+        title: "Continue Writing",
+        description: "Use AI to complete your thoughts",
+        icon: <Sparkles className="h-4 w-4 text-purple-500" />,
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).run();
+          window.dispatchEvent(new CustomEvent("ai-continue"));
+        },
+      },
+      {
+        title: "Improve Writing",
+        description: "Fix grammar and polish text",
+        icon: <Wand2 className="h-4 w-4 text-purple-500" />,
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).run();
+          window.dispatchEvent(new CustomEvent("ai-improve"));
+        },
+      },
+    ],
+  },
   {
     heading: "Headings",
     items: [

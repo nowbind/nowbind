@@ -458,3 +458,38 @@ curl -s -X POST "$BASE/mcp/" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":4,"method":"resources/read","params":{"uri":"nowbind://feed"}}' | jq
 ```
+
+---
+
+## AI Writing Assistant
+
+The AI Writing Assistant is integrated into the editor and provides real-time writing support.
+
+### Endpoints
+
+**Generate AI Content:**
+`POST /api/ai/generate`
+
+**Payload:**
+```json
+{
+  "prompt": "The text to process or the context for continuation",
+  "option": "continue | improve | rewrite | summarize | fix-grammar | headline | shorten | lengthen",
+  "tone": "professional | casual | persuasive | friendly",
+  "context": "Optional additional context"
+}
+```
+
+### Local Testing
+
+1. **OpenAI:** Set `OPENAI_API_KEY` in `frontend/.env.local`.
+2. **Ollama (Fallback):** 
+   - Ensure Ollama is running (`ollama serve`).
+   - Pull a model: `ollama pull llama2` (or your preferred model).
+   - Set `OLLAMA_BASE_URL` in `frontend/.env.local` if different from `http://localhost:11434/api/generate`.
+
+### UI Shortcuts
+
+- **Ctrl+J / Cmd+J:** Trigger "Continue Writing" at the current cursor position.
+- **Slash Command:** Type `/` and select "Continue Writing" or "Improve Writing".
+- **Bubble Menu:** Select text to reveal the AI Assistant button with multiple refinement options.

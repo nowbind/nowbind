@@ -27,6 +27,9 @@ import {
   Github,
   Code2,
   Globe,
+  Sparkles,
+  Wand2,
+  Eraser,
 } from "lucide-react";
 
 interface SlashCommandsProps {
@@ -34,6 +37,29 @@ interface SlashCommandsProps {
 }
 
 const commandGroups = [
+  {
+    heading: "AI Assistant",
+    items: [
+      {
+        title: "Continue Writing",
+        description: "Use AI to complete your thoughts",
+        icon: <Sparkles className="h-4 w-4 text-purple-500" />,
+        command: ({ editor, range }: { editor: Editor; range: Range }) => {
+          editor.chain().focus().deleteRange(range).run();
+          window.dispatchEvent(new CustomEvent("ai-continue"));
+        },
+      },
+      {
+        title: "Improve Writing",
+        description: "Fix grammar and polish text",
+        icon: <Wand2 className="h-4 w-4 text-purple-500" />,
+        command: ({ editor, range }: { editor: Editor; range: Range }) => {
+          editor.chain().focus().deleteRange(range).run();
+          window.dispatchEvent(new CustomEvent("ai-improve"));
+        },
+      },
+    ],
+  },
   {
     heading: "Headings",
     items: [
