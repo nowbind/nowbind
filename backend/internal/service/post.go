@@ -81,7 +81,6 @@ func (s *PostService) Create(ctx context.Context, authorID string, input CreateP
 	}
 
 	// Generate AI metadata
-	post.AISummary = generateSummary(contentText, input.Excerpt)
 	post.AIKeywords = extractKeywords(input.Title, contentText)
 	post.StructuredMD = generateStructuredMD(post)
 
@@ -168,7 +167,6 @@ func (s *PostService) Update(ctx context.Context, postID, authorID string, input
 	post.ReadingTime = pkg.EstimateReadingTime(contentText)
 
 	// Regenerate AI metadata
-	post.AISummary = generateSummary(contentText, input.Excerpt)
 	post.AIKeywords = extractKeywords(post.Title, contentText)
 	post.StructuredMD = generateStructuredMD(post)
 
@@ -274,17 +272,6 @@ func (s *PostService) ensureTagsTx(ctx context.Context, tx pgx.Tx, names []strin
 		ids = append(ids, tag.ID)
 	}
 	return ids, nil
-}
-
-// Simple AI metadata generation (can be enhanced with actual AI later)
-func generateSummary(content, excerpt string) string {
-	if excerpt != "" {
-		return excerpt
-	}
-	if len(content) > 300 {
-		return content[:300] + "..."
-	}
-	return content
 }
 
 func extractKeywords(title, content string) []string {

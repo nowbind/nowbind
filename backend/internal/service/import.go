@@ -108,7 +108,7 @@ func (s *ImportService) ImportMediumZip(ctx context.Context, authorID string, zi
 			Title:         parsed.title,
 			Content:       markdown,
 			ContentFormat: "markdown",
-			Excerpt:       generateSummary(markdown, ""),
+			Excerpt:       excerptFromContent(markdown),
 			Status:        "draft",
 			ReadingTime:   pkg.EstimateReadingTime(markdown),
 		}
@@ -133,7 +133,6 @@ func (s *ImportService) ImportMediumZip(ctx context.Context, authorID string, zi
 			post.ContentJSON = &jsonStr
 		}
 
-		post.AISummary = generateSummary(markdown, "")
 		post.AIKeywords = extractKeywords(parsed.title, markdown)
 		post.StructuredMD = generateStructuredMD(post)
 
@@ -443,4 +442,12 @@ func decodeHTMLEntities(s string) string {
 		"&rdquo;", "\u201d",
 	)
 	return replacer.Replace(s)
+}
+
+// excerptFromContent returns the first 300 characters of content as an excerpt.
+func excerptFromContent(content string) string {
+	if len(content) > 300 {
+		return content[:300] + "..."
+	}
+	return content
 }
