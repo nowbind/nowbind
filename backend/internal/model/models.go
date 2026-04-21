@@ -46,7 +46,6 @@ type Post struct {
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at"`
 	Tags          []Tag      `json:"tags"`
-	AISummary     string     `json:"ai_summary"`
 	AIKeywords    []string   `json:"ai_keywords"`
 	StructuredMD  string     `json:"structured_md"`
 }
