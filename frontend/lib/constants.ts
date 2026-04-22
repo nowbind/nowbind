@@ -1,6 +1,8 @@
 // Uses Next.js rewrites to proxy /api/* to the Go backend
 export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "/api/v1";
+  (typeof window === "undefined"
+    ? process.env.BACKEND_URL
+    : process.env.NEXT_PUBLIC_API_URL) || "/api/v1";
 
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
