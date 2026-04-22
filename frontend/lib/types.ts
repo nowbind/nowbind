@@ -40,7 +40,6 @@ export interface Post {
   created_at: string;
   updated_at: string;
   tags: Tag[];
-  ai_summary: string;
   ai_keywords: string[];
   structured_md: string;
 }

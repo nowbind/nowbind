@@ -83,7 +83,7 @@ func (r *BookmarkRepository) GetBookmarks(ctx context.Context, userID string, pa
 	rows, err := r.pool.Query(ctx,
 		`SELECT p.id, p.author_id, p.slug, p.title, p.subtitle, p.excerpt, p.status,
 		        p.reading_time, p.published_at, p.created_at, p.updated_at,
-		        p.ai_summary, p.ai_keywords, p.like_count, p.comment_count,
+		        p.ai_keywords, p.like_count, p.comment_count,
 		        u.id, u.email, u.username, u.display_name, u.avatar_url
 		 FROM bookmarks b
 		 JOIN posts p ON p.id = b.post_id
@@ -104,7 +104,7 @@ func (r *BookmarkRepository) GetBookmarks(ctx context.Context, userID string, pa
 		if err := rows.Scan(
 			&p.ID, &p.AuthorID, &p.Slug, &p.Title, &p.Subtitle, &p.Excerpt, &p.Status,
 			&p.ReadingTime, &p.PublishedAt, &p.CreatedAt, &p.UpdatedAt,
-			&p.AISummary, &p.AIKeywords, &p.LikeCount, &p.CommentCount,
+			&p.AIKeywords, &p.LikeCount, &p.CommentCount,
 			&author.ID, &author.Email, &author.Username, &author.DisplayName, &author.AvatarURL,
 		); err != nil {
 			return nil, 0, err
