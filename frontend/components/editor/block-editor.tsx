@@ -17,9 +17,10 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+import { aiService } from "@/lib/ai-service";
 
 type UrlPromptType = "image" | "youtube" | "bookmark" | "link" | "embed";
 
@@ -264,24 +265,14 @@ export function BlockEditor({
             const aiContinueHandler = async () => {
               const text = editor.getText();
               setIsAILoading(true);
-              try {
-                const response = await fetch("/api/ai/generate", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    prompt: text.slice(-1000), // Last 1000 chars as context
-                    option: "continue",
-                  }),
-                });
-                const data = await response.json();
-                if (data.text && !data.error) {
-                  editor.chain().focus().insertContent(data.text).run();
-                }
-              } catch (err) {
-                console.error("AI Continue failed:", err);
-              } finally {
-                setIsAILoading(false);
+              const result = await aiService.generate({
+                prompt: text.slice(-1000), // Last 1000 chars as context
+                option: "continue",
+              });
+              if (!result.error) {
+                editor.chain().focus().insertContent(result.text).run();
               }
+              setIsAILoading(false);
             };
 
             const aiImproveHandler = async () => {
@@ -290,24 +281,14 @@ export function BlockEditor({
               if (!selectedText) return;
 
               setIsAILoading(true);
-              try {
-                const response = await fetch("/api/ai/generate", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    prompt: selectedText,
-                    option: "improve",
-                  }),
-                });
-                const data = await response.json();
-                if (data.text && !data.error) {
-                  editor.chain().focus().insertContent(data.text).run();
-                }
-              } catch (err) {
-                console.error("AI Improve failed:", err);
-              } finally {
-                setIsAILoading(false);
+              const result = await aiService.generate({
+                prompt: selectedText,
+                option: "improve",
+              });
+              if (!result.error) {
+                editor.chain().focus().insertContent(result.text).run();
               }
+              setIsAILoading(false);
             };
 
             window.addEventListener("ai-continue", aiContinueHandler);
@@ -400,9 +381,9 @@ export function BlockEditor({
       {/* Status Bar */}
       <div className="pointer-events-none sticky bottom-4 flex justify-end gap-2 pr-2 pt-2">
         {isAILoading && (
-          <span className="pointer-events-auto flex items-center gap-1.5 rounded-md bg-purple-600 px-2.5 py-1 text-xs text-white shadow-lg animate-pulse">
-            <Sparkles className="h-3 w-3" />
-            AI is thinking...
+          <span className="pointer-events-auto flex items-center gap-1.5 rounded-md bg-accent px-2.5 py-1 text-xs text-foreground shadow-lg backdrop-blur-md border">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Generating content...
           </span>
         )}
         <span className="pointer-events-auto rounded-md bg-muted/80 px-2.5 py-1 text-xs text-muted-foreground backdrop-blur-sm">

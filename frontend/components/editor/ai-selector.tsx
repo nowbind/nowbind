@@ -1,34 +1,24 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { useEditor } from "novel";
 import { 
   Sparkles, 
   RefreshCw, 
-  TextQuote, 
   FileText, 
-  Check, 
-  ChevronDown,
+  Check,
   Loader2,
   Trash2,
   ALargeSmall,
-  ArrowRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import { aiService } from "@/lib/ai-service";
 
-interface AISelectorProps {
-  onSelect?: (text: string) => void;
-}
+
 
 const AI_OPTIONS = [
-  {
-    name: "improve",
-    label: "Improve writing",
-    icon: Sparkles,
-    description: "Fix grammar and improve clarity"
-  },
   {
     name: "rewrite",
     label: "Rewrite",
@@ -80,31 +70,18 @@ export function AISelector() {
     setIsLoading(true);
     setIsOpen(false);
 
-    try {
-      const response = await fetch("/api/ai/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: selectedText || editor.getText(),
-          option,
-          context: editor.getText().slice(0, 1000), // Recent context
-          tone,
-        }),
-      });
+    const result = await aiService.generate({
+      prompt: selectedText || editor.getText(),
+      option,
+      context: editor.getText().slice(0, 1000),
+      tone,
+    });
 
-      const data = await response.json();
-
-      if (data.error) {
-        toast.error(data.text);
-      } else {
-        setGeneratedText(data.text);
-      }
-    } catch (err) {
-      toast.error("Failed to generate text. Is the AI server running?");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
+    if (!result.error) {
+      setGeneratedText(result.text);
     }
+    
+    setIsLoading(false);
   };
 
   const applyChange = () => {
@@ -124,16 +101,14 @@ export function AISelector() {
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 gap-1 pl-2 pr-1 text-xs font-medium text-purple-600 hover:bg-purple-50 hover:text-purple-700 dark:text-purple-400 dark:hover:bg-purple-900/20"
+            className="h-8 w-8 p-0 text-muted-foreground hover:bg-accent hover:text-foreground"
             onClick={() => setIsOpen(!isOpen)}
           >
             {isLoading ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Sparkles className="h-3 w-3" />
+              <Sparkles className="h-4 w-4" />
             )}
-            AI Assistant
-            <ChevronDown className="h-3 w-3 opacity-50" />
           </Button>
 
           {isOpen && (
@@ -145,7 +120,7 @@ export function AISelector() {
                     className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-accent"
                     onClick={() => handleAIAction(opt.name)}
                   >
-                    <opt.icon className="h-4 w-4 text-purple-500" />
+                    <opt.icon className="h-4 w-4 text-muted-foreground/70" />
                     <div>
                       <div className="font-medium">{opt.label}</div>
                       <div className="text-xs text-muted-foreground">{opt.description}</div>
@@ -153,18 +128,20 @@ export function AISelector() {
                   </button>
                 ))}
               </div>
-              <div className="border-t bg-muted/20 p-2">
-                <div className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <div className="border-t bg-muted/10 p-2">
+                <div className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
                   Tone
                 </div>
-                <div className="grid grid-cols-2 gap-1">
+                <div className="grid grid-cols-2 gap-1.5 px-1 pb-1">
                   {TONE_OPTIONS.map((t) => (
                     <button
                       key={t.name}
                       onClick={() => setTone(t.name)}
                       className={cn(
-                        "rounded px-2 py-1 text-left text-xs transition-colors hover:bg-accent",
-                        tone === t.name && "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
+                        "rounded-md px-2 py-1.5 text-left text-xs transition-all",
+                        tone === t.name 
+                          ? "bg-foreground text-background font-medium shadow-sm" 
+                          : "text-muted-foreground hover:bg-accent hover:text-foreground"
                       )}
                     >
                       {t.label}
@@ -176,10 +153,9 @@ export function AISelector() {
           )}
         </div>
       ) : (
-        <div className="flex flex-col gap-2 p-2 min-w-[300px] max-w-[400px]">
-          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-purple-500">
-            <Sparkles className="h-3 w-3" />
-            AI Suggestion
+        <div className="flex flex-col gap-3 p-3 min-w-[320px] max-w-[450px]">
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <Sparkles className="h-3.5 w-3.5" />
           </div>
           <p className="text-sm text-foreground/80 italic leading-relaxed">
             {generatedText}
@@ -197,10 +173,10 @@ export function AISelector() {
             <Button
               variant="default"
               size="sm"
-              className="h-7 px-2 text-xs bg-purple-600 hover:bg-purple-700 text-white"
+              className="h-8 px-3 text-xs"
               onClick={applyChange}
             >
-              <Check className="mr-1 h-3 w-3" />
+              <Check className="mr-1.5 h-3.5 w-3.5" />
               Replace Selection
             </Button>
           </div>
