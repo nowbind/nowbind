@@ -80,12 +80,6 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 	// Health
 	r.Get("/health", healthH.Health)
 
-	// Serve local uploads in development (when R2 is not configured)
-	if cfg.R2AccountID == "" || cfg.R2AccessKeyID == "" {
-		uploadsDir := http.Dir("./uploads")
-		r.Handle("/uploads/*", http.StripPrefix("/uploads", http.FileServer(uploadsDir)))
-	}
-
 	// Public: llms.txt
 	r.Get("/llms.txt", llmsH.LLMSTxt)
 	r.Get("/llms-full.txt", llmsH.LLMSFullTxt)

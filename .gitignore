@@ -57,11 +57,5 @@ docker-compose.override.yml
 scripts/node_modules/
 
 docs/post-drafts
-
-# Local media uploads (dev only)
-backend/uploads/
-uploads/
-
-# Moderation service
-moderation-service/.env
-*.venv
+docs/
+AGENTS.md
