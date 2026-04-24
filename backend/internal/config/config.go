@@ -52,7 +52,7 @@ type Config struct {
 	DevLogin bool
 
 	// Content Moderation
-	ModerationServiceURL    string // e.g. "http://moderation-service:8090"
+	ModerationServiceURL    string // e.g. "http://nsfw-service:8090"
 	ModerationInternalSecret string
 }
 

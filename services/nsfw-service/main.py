@@ -1,4 +1,4 @@
-# moderation-service/main.py
+# services/nsfw-service/main.py
 import os
 from pathlib import Path
 from contextlib import asynccontextmanager
@@ -15,7 +15,7 @@ from models.text_nsfw import check_text
 from models.spam import check_spam
 
 # Load .env file if present (for local development)
-env_path = Path(__file__).parent / ".env"
+env_path = Path(__file__).parent.parent / ".env"
 if env_path.exists():
     for line in env_path.read_text().splitlines():
         line = line.strip()
