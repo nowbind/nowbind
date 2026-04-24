@@ -11,6 +11,7 @@ import (
 	"github.com/nowbind/nowbind/internal/handler"
 	"github.com/nowbind/nowbind/internal/mcp"
 	"github.com/nowbind/nowbind/internal/middleware"
+	"github.com/nowbind/nowbind/internal/moderation"
 	"github.com/nowbind/nowbind/internal/repository"
 	"github.com/nowbind/nowbind/internal/service"
 )
@@ -42,6 +43,7 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 	pushRepo := repository.NewPushRepository(pool)
 	loginLogRepo := repository.NewLoginLogRepository(pool)
 	mediaRepo := repository.NewMediaRepository(pool)
+	moderationRepo := repository.NewModerationRepository(pool)
 
 	// Services
 	emailService := service.NewEmailService(cfg)
@@ -51,11 +53,17 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 	socialService := service.NewSocialService(followRepo, likeRepo, bookmarkRepo, commentRepo, notifRepo, userRepo, postRepo, notifService)
 	mediaService := service.NewMediaService(cfg, mediaRepo)
 
+	// Moderation client (optional — only created if URL is configured)
+	var moderationClient *moderation.Client
+	if cfg.ModerationServiceURL != "" {
+		moderationClient = moderation.NewClient(cfg.ModerationServiceURL, cfg.ModerationInternalSecret)
+	}
+
 	// Handlers
 	healthH := handler.NewHealthHandler()
 	authH := handler.NewAuthHandler(authService, cfg, loginLogRepo, pool)
-	socialH := handler.NewSocialHandler(socialService, followRepo, likeRepo, bookmarkRepo, commentRepo, postRepo, userRepo)
-	postH := handler.NewPostHandler(postService, postRepo, socialH)
+	socialH := handler.NewSocialHandler(socialService, followRepo, likeRepo, bookmarkRepo, commentRepo, postRepo, userRepo, moderationClient)
+	postH := handler.NewPostHandler(postService, postRepo, socialH, moderationClient, moderationRepo)
 	userH := handler.NewUserHandler(userRepo, postRepo, followRepo, socialH)
 	tagH := handler.NewTagHandler(tagRepo, postRepo, socialH)
 	searchH := handler.NewSearchHandler(postRepo, userRepo, followRepo, socialH)
@@ -71,6 +79,12 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 
 	// Health
 	r.Get("/health", healthH.Health)
+
+	// Serve local uploads in development (when R2 is not configured)
+	if cfg.R2AccountID == "" || cfg.R2AccessKeyID == "" {
+		uploadsDir := http.Dir("./uploads")
+		r.Handle("/uploads/*", http.StripPrefix("/uploads", http.FileServer(uploadsDir)))
+	}
 
 	// Public: llms.txt
 	r.Get("/llms.txt", llmsH.LLMSTxt)

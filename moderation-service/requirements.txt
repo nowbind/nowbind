@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+detoxify
+transformers
+torch
+torchvision
+Pillow
+httpx
+python-multipart
+pydantic
+pytest

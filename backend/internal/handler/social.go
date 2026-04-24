@@ -2,24 +2,27 @@ package handler
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/nowbind/nowbind/internal/middleware"
 	"github.com/nowbind/nowbind/internal/model"
+	"github.com/nowbind/nowbind/internal/moderation"
 	"github.com/nowbind/nowbind/internal/repository"
 	"github.com/nowbind/nowbind/internal/service"
 )
 
 type SocialHandler struct {
-	social    *service.SocialService
-	follows   *repository.FollowRepository
-	likes     *repository.LikeRepository
-	bookmarks *repository.BookmarkRepository
-	comments  *repository.CommentRepository
-	posts     *repository.PostRepository
-	users     *repository.UserRepository
+	social           *service.SocialService
+	follows          *repository.FollowRepository
+	likes            *repository.LikeRepository
+	bookmarks        *repository.BookmarkRepository
+	comments         *repository.CommentRepository
+	posts            *repository.PostRepository
+	users            *repository.UserRepository
+	moderationClient *moderation.Client
 }
 
 func NewSocialHandler(
@@ -30,15 +33,17 @@ func NewSocialHandler(
 	comments *repository.CommentRepository,
 	posts *repository.PostRepository,
 	users *repository.UserRepository,
+	moderationClient *moderation.Client,
 ) *SocialHandler {
 	return &SocialHandler{
-		social:    social,
-		follows:   follows,
-		likes:     likes,
-		bookmarks: bookmarks,
-		comments:  comments,
-		posts:     posts,
-		users:     users,
+		social:           social,
+		follows:          follows,
+		likes:            likes,
+		bookmarks:        bookmarks,
+		comments:         comments,
+		posts:            posts,
+		users:            users,
+		moderationClient: moderationClient,
 	}
 }
 
@@ -376,6 +381,20 @@ func (h *SocialHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
 	if len(req.Content) > 10000 {
 		writeError(w, http.StatusBadRequest, "comment too long (max 10000 characters)")
 		return
+	}
+
+	// Run content moderation before persisting
+	if h.moderationClient != nil {
+		result, err := h.moderationClient.ModerateComment(r.Context(), "", req.Content)
+		if err != nil {
+			// Moderation service is down — fail open (log and allow)
+			log.Printf("moderation service unavailable for comment: %v", err)
+		} else if !result.Safe && result.Action == "block" {
+			writeJSON(w, http.StatusUnprocessableEntity, map[string]string{
+				"error": result.Message,
+			})
+			return
+		}
 	}
 
 	comment := &model.Comment{

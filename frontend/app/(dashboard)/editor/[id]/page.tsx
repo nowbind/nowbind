@@ -9,7 +9,7 @@ import { PostSettingsPanel } from "@/components/editor/post-settings-panel";
 import { PostContent } from "@/components/post/post-content";
 import { useMediaUpload } from "@/lib/hooks/use-media-upload";
 import { useAutosave } from "@/lib/hooks/use-autosave";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Post } from "@/lib/types";
 import type { JSONContent } from "novel";
@@ -116,7 +116,13 @@ export default function EditPostPage({ params }: Props) {
       postRef.current = updated;
       setPost(updated);
       return true;
-    } catch {
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 422) {
+        toast.error("Content Policy Violation", {
+          description: err.message || "Your changes contain content that violates our community guidelines.",
+          duration: 8000,
+        });
+      }
       return false;
     }
   }, []);
@@ -167,8 +173,15 @@ export default function EditPostPage({ params }: Props) {
       setSlug(updated.slug || slug);
       markClean();
       toast.success("Post saved");
-    } catch {
-      toast.error("Failed to save post");
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 422) {
+        toast.error("Content Policy Violation", {
+          description: err.message || "Your changes contain content that violates our community guidelines.",
+          duration: 8000,
+        });
+      } else {
+        toast.error("Failed to save post");
+      }
     } finally {
       setSaving(false);
     }
@@ -192,8 +205,15 @@ export default function EditPostPage({ params }: Props) {
       markClean();
       toast.success("Post published");
       router.push(`/post/${post.slug}`);
-    } catch {
-      toast.error("Failed to publish");
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 422) {
+        toast.error("Content Policy Violation", {
+          description: err.message || "Your post was blocked by our content moderation system.",
+          duration: 8000,
+        });
+      } else {
+        toast.error("Failed to publish");
+      }
     } finally {
       setSaving(false);
     }

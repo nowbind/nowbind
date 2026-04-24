@@ -9,7 +9,7 @@ import { PostSettingsPanel } from "@/components/editor/post-settings-panel";
 import { PostContent } from "@/components/post/post-content";
 import { useMediaUpload } from "@/lib/hooks/use-media-upload";
 import { useAutosave } from "@/lib/hooks/use-autosave";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/hooks/use-auth";
 import type { JSONContent } from "novel";
 import {
@@ -210,8 +210,15 @@ export default function EditorPage() {
       await api.post(`/posts/${postId}/publish`);
       markClean();
       router.push(`/post/${postSlug}`);
-    } catch {
-      toast.error("Failed to publish");
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 422) {
+        toast.error("Content Policy Violation", {
+          description: err.message || "Your post was blocked by our content moderation system.",
+          duration: 8000,
+        });
+      } else {
+        toast.error("Failed to publish");
+      }
     } finally {
       setPublishing(false);
     }
