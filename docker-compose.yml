@@ -50,6 +50,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
 
   frontend:
@@ -64,9 +66,12 @@ services:
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
       BACKEND_URL: http://backend:8080
       NODE_ENV: production
+      OLLAMA_BASE_URL: http://host.docker.internal:11434/api/generate
     depends_on:
       backend:
         condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "3000:3000"
     healthcheck:

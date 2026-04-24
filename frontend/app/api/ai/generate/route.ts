@@ -90,7 +90,7 @@ export async function POST(req: Request) {
     // Graceful failure
     return new Response(
       JSON.stringify({ 
-        text: "I'm currently unable to process AI requests. Please check your AI configuration or try again later.",
+        text: "I'm currently having trouble processing your request. Please try again in a few moments.",
         error: true 
       }),
       { 
