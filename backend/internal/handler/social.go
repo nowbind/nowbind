@@ -383,13 +383,14 @@ func (h *SocialHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Run content moderation before persisting
+	// Run content moderation before persisting.
+	// Comments have no draft/review state, so block on ANY unsafe result.
 	if h.moderationClient != nil {
 		result, err := h.moderationClient.ModerateComment(r.Context(), "", req.Content)
 		if err != nil {
 			// Moderation service is down — fail open (log and allow)
 			log.Printf("moderation service unavailable for comment: %v", err)
-		} else if !result.Safe && result.Action == "block" {
+		} else if !result.Safe {
 			writeJSON(w, http.StatusUnprocessableEntity, map[string]string{
 				"error": result.Message,
 			})
@@ -443,6 +444,19 @@ func (h *SocialHandler) UpdateComment(w http.ResponseWriter, r *http.Request) {
 	if len(req.Content) > 10000 {
 		writeError(w, http.StatusBadRequest, "comment too long (max 10000 characters)")
 		return
+	}
+
+	// Run content moderation before persisting the edit
+	if h.moderationClient != nil {
+		result, err := h.moderationClient.ModerateComment(r.Context(), commentID, req.Content)
+		if err != nil {
+			log.Printf("moderation service unavailable for comment edit: %v", err)
+		} else if !result.Safe {
+			writeJSON(w, http.StatusUnprocessableEntity, map[string]string{
+				"error": result.Message,
+			})
+			return
+		}
 	}
 
 	if err := h.comments.Update(r.Context(), commentID, req.Content); err != nil {
