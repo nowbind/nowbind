@@ -50,6 +50,8 @@ export default function EditPostPage({ params }: Props) {
   const [loading, setLoading] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+  // Plain text content for tag suggestion hook
+  const [contentText, setContentText] = useState("");
 
   // Refs for autosave to capture latest values
   const postRef = useRef(post);
@@ -422,6 +424,18 @@ export default function EditPostPage({ params }: Props) {
               initialContent={initialContent}
               onChange={(json) => {
                 setContentJSON(json);
+                // Extract plain text for tag suggestions
+                try {
+                  const extractText = (node: any): string => {
+                    if (!node) return "";
+                    if (node.text) return node.text;
+                    if (node.content) return node.content.map(extractText).join(" ");
+                    return "";
+                  };
+                  setContentText(extractText(json));
+                } catch {
+                  // noop
+                }
                 markDirty();
               }}
               onImageUpload={uploadMedia}
@@ -459,6 +473,10 @@ export default function EditPostPage({ params }: Props) {
           setFeatureImage(v);
           markDirty();
         }}
+        postId={id}
+        title={title}
+        subtitle={subtitle}
+        content={contentText}
       />
     </div>
   );

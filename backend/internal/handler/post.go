@@ -18,6 +18,7 @@ import (
 type PostHandler struct {
 	postService      *service.PostService
 	postRepo         *repository.PostRepository
+	tagRepo          *repository.TagRepository
 	socialH          *SocialHandler
 	moderationClient *moderation.Client
 	moderationRepo   *repository.ModerationRepository
@@ -26,6 +27,7 @@ type PostHandler struct {
 func NewPostHandler(
 	postService *service.PostService,
 	postRepo *repository.PostRepository,
+	tagRepo *repository.TagRepository,
 	socialH *SocialHandler,
 	moderationClient *moderation.Client,
 	moderationRepo *repository.ModerationRepository,
@@ -33,6 +35,7 @@ func NewPostHandler(
 	return &PostHandler{
 		postService:      postService,
 		postRepo:         postRepo,
+		tagRepo:          tagRepo,
 		socialH:          socialH,
 		moderationClient: moderationClient,
 		moderationRepo:   moderationRepo,

@@ -102,3 +102,74 @@ func (c *Client) ModerateComment(ctx context.Context, commentID, text string) (*
 		Text:      text,
 	})
 }
+
+// ---------------------------------------------------------------------------
+// Tag suggestion types + method
+// ---------------------------------------------------------------------------
+
+// TagSuggestion is a single suggested tag from the ML service.
+type TagSuggestion struct {
+	Keyword       string  `json:"keyword"`
+	Score         float64 `json:"score"`
+	IsExistingTag bool    `json:"is_existing_tag"`
+	MatchedTag    *string `json:"matched_tag"`
+}
+
+// TagSuggestionRequest is sent to POST /suggest/tags.
+type TagSuggestionRequest struct {
+	PostID        string   `json:"post_id"`
+	Title         string   `json:"title"`
+	Excerpt       string   `json:"excerpt"`
+	ContentSample string   `json:"content_sample"`
+	ExistingTags  []string `json:"existing_tags"`
+	SelectedTags  []string `json:"selected_tags"`
+}
+
+// TagSuggestionResponse comes back from the ML service.
+type TagSuggestionResponse struct {
+	PostID      string          `json:"post_id"`
+	Suggestions []TagSuggestion `json:"suggestions"`
+	Source      string          `json:"source"`
+}
+
+// SuggestTags calls the ML service to get tag suggestions for a post.
+func (c *Client) SuggestTags(ctx context.Context, req TagSuggestionRequest) (*TagSuggestionResponse, error) {
+	// Ensure slices are never nil (JSON null) — Pydantic rejects null for list[str]
+	if req.ExistingTags == nil {
+		req.ExistingTags = []string{}
+	}
+	if req.SelectedTags == nil {
+		req.SelectedTags = []string{}
+	}
+
+	body, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("marshal: %w", err)
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/suggest/tags", bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("new request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("X-Internal-Secret", c.internalSecret)
+
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("http do: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		// Read error body for debugging
+		var errBody map[string]interface{}
+		json.NewDecoder(resp.Body).Decode(&errBody)
+		return nil, fmt.Errorf("ml service returned %d: %v", resp.StatusCode, errBody)
+	}
+
+	var result TagSuggestionResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("decode: %w", err)
+	}
+	return &result, nil
+}

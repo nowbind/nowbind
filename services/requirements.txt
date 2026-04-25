@@ -9,3 +9,7 @@ httpx
 python-multipart
 pydantic
 pytest
+keybert
+rapidfuzz
+yake
+sentence-transformers

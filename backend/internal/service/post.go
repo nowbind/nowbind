@@ -201,6 +201,32 @@ func (s *PostService) Publish(ctx context.Context, postID, authorID string) erro
 	if post.AuthorID != authorID {
 		return fmt.Errorf("unauthorized")
 	}
+
+	if len(post.Tags) == 0 {
+		suggestions, err := s.tags.GetSuggestionsForPost(ctx, postID)
+		if err == nil && len(suggestions) > 0 {
+			limit := 3
+			if len(suggestions) < limit {
+				limit = len(suggestions)
+			}
+			var tagNames []string
+			for i := 0; i < limit; i++ {
+				tagName := suggestions[i].Keyword
+				if suggestions[i].MatchedTag != nil && *suggestions[i].MatchedTag != "" {
+					tagName = *suggestions[i].MatchedTag
+				}
+				tagNames = append(tagNames, tagName)
+				// Mark suggestion as accepted
+				_ = s.tags.MarkSuggestionAccepted(ctx, postID, suggestions[i].Keyword, true)
+			}
+			
+			tagIDs, err := s.ensureTags(ctx, tagNames)
+			if err == nil && len(tagIDs) > 0 {
+				_ = s.posts.SetTags(ctx, postID, tagIDs)
+			}
+		}
+	}
+
 	if err := s.posts.Publish(ctx, postID); err != nil {
 		return err
 	}

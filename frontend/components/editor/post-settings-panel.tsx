@@ -13,6 +13,8 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { useMediaUpload } from "@/lib/hooks/use-media-upload";
+import { useTagSuggestions } from "@/lib/hooks/use-tag-suggestions";
+import { TagSuggestions } from "./tag-suggestions";
 import { X, Upload, Star, Loader2, Image as ImageIcon } from "lucide-react";
 
 interface PostSettingsPanelProps {
@@ -29,6 +31,11 @@ interface PostSettingsPanelProps {
   featureImage: string;
   onFeatureImageChange: (url: string) => void;
   slugPrefix?: string;
+  // Auto-tag suggestion context
+  postId?: string;
+  title?: string;
+  subtitle?: string;
+  content?: string;
 }
 
 export function PostSettingsPanel({
@@ -45,9 +52,23 @@ export function PostSettingsPanel({
   featureImage,
   onFeatureImageChange,
   slugPrefix = "nowbind.com/post/",
+  postId = "",
+  title = "",
+  subtitle = "",
+  content = "",
 }: PostSettingsPanelProps) {
   const { uploadMedia, uploading } = useMediaUpload();
   const [tagInput, setTagInput] = useState("");
+
+  const { suggestions, isLoading: suggestionsLoading, acceptSuggestion, dismissSuggestion } =
+    useTagSuggestions({
+      postId,
+      title,
+      subtitle,
+      excerpt,
+      content,
+      selectedTags: tags,
+    });
 
   const addTag = useCallback(() => {
     const tag = tagInput.trim();
@@ -131,6 +152,24 @@ export function PostSettingsPanel({
                 }
               }}
               onBlur={addTag}
+            />
+
+            {/* AI-powered tag suggestions */}
+            <TagSuggestions
+              suggestions={suggestions}
+              isLoading={suggestionsLoading}
+              onAccept={(keyword) => {
+                // Add the matched tag or the keyword itself to the tag list
+                const suggestion = suggestions.find((s) => s.keyword === keyword);
+                const tagName = suggestion?.is_existing_tag && suggestion.matched_tag
+                  ? suggestion.matched_tag
+                  : keyword;
+                if (!tags.includes(tagName)) {
+                  onTagsChange([...tags, tagName]);
+                }
+                acceptSuggestion(keyword);
+              }}
+              onDismiss={dismissSuggestion}
             />
           </div>
 

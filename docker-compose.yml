@@ -29,7 +29,7 @@ services:
       R2_SECRET_KEY: ${R2_SECRET_KEY:-}
       R2_BUCKET_NAME: ${R2_BUCKET_NAME:-}
       R2_PUBLIC_URL: ${R2_PUBLIC_URL:-}
-      MODERATION_SERVICE_URL: http://nsfw-service:8090
+      MODERATION_SERVICE_URL: http://ml-services:8090
       MODERATION_INTERNAL_SECRET: ${MODERATION_INTERNAL_SECRET:-change-me}
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -42,7 +42,7 @@ services:
       retries: 10
     restart: unless-stopped
     depends_on:
-      nsfw-service:
+      ml-services:
         condition: service_started
 
   frontend:
@@ -68,11 +68,11 @@ services:
       retries: 10
     restart: unless-stopped
 
-  nsfw-service:
+  ml-services:
     build:
       context: ./services
-      dockerfile: nsfw-service/Dockerfile
-    container_name: nowbind-nsfw
+      dockerfile: Dockerfile
+    container_name: nowbind-ml
     environment:
       MODERATION_INTERNAL_SECRET: ${MODERATION_INTERNAL_SECRET:-change-me}
     ports:

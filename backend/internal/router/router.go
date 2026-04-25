@@ -63,7 +63,7 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 	healthH := handler.NewHealthHandler()
 	authH := handler.NewAuthHandler(authService, cfg, loginLogRepo, pool)
 	socialH := handler.NewSocialHandler(socialService, followRepo, likeRepo, bookmarkRepo, commentRepo, postRepo, userRepo, moderationClient)
-	postH := handler.NewPostHandler(postService, postRepo, socialH, moderationClient, moderationRepo)
+	postH := handler.NewPostHandler(postService, postRepo, tagRepo, socialH, moderationClient, moderationRepo)
 	userH := handler.NewUserHandler(userRepo, postRepo, followRepo, socialH)
 	tagH := handler.NewTagHandler(tagRepo, postRepo, socialH)
 	searchH := handler.NewSearchHandler(postRepo, userRepo, followRepo, socialH)
@@ -130,6 +130,11 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 				r.Delete("/{id}/like", socialH.UnlikePost)
 				r.Post("/{id}/bookmark", socialH.BookmarkPost)
 				r.Delete("/{id}/bookmark", socialH.UnbookmarkPost)
+
+				// Tag suggestions (ML-powered)
+				r.Post("/{id}/suggest-tags", postH.SuggestTags)
+				r.Post("/{id}/suggest-tags/accept", postH.AcceptTagSuggestion)
+				r.Get("/{id}/suggestions", postH.GetSuggestions)
 			})
 
 			// Comments (public read, auth write)
