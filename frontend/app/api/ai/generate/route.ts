@@ -15,19 +15,19 @@ const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || "http://host.docker.inter
 
 export async function POST(req: Request) {
   try {
-    const { prompt, option, context, tone } = await req.json();
+    const { prompt, option, context } = await req.json();
 
     let taskPrompt = "";
     
     switch (option) {
       case "continue":
-        taskPrompt = PROMPTS.continue(tone);
+        taskPrompt = PROMPTS.continue();
         break;
       case "improve":
         taskPrompt = PROMPTS.improve();
         break;
       case "rewrite":
-        taskPrompt = PROMPTS.rewrite(tone);
+        taskPrompt = PROMPTS.rewrite();
         break;
       case "summarize":
         taskPrompt = PROMPTS.summarize();

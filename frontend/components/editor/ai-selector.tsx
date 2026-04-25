@@ -39,19 +39,12 @@ const AI_OPTIONS = [
   }
 ];
 
-const TONE_OPTIONS = [
-  { name: "professional", label: "Professional" },
-  { name: "casual", label: "Casual" },
-  { name: "persuasive", label: "Persuasive" },
-  { name: "friendly", label: "Friendly" }
-];
 
 export function AISelector() {
   const { editor } = useEditor();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [generatedText, setGeneratedText] = useState("");
-  const [tone, setTone] = useState("professional");
 
   if (!editor) return null;
 
@@ -74,7 +67,6 @@ export function AISelector() {
       prompt: selectedText || editor.getText(),
       option,
       context: editor.getText().slice(0, 1000),
-      tone,
     });
 
     if (!result.error) {
@@ -127,27 +119,6 @@ export function AISelector() {
                     </div>
                   </button>
                 ))}
-              </div>
-              <div className="border-t bg-muted/10 p-2">
-                <div className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-                  Tone
-                </div>
-                <div className="grid grid-cols-2 gap-1.5 px-1 pb-1">
-                  {TONE_OPTIONS.map((t) => (
-                    <button
-                      key={t.name}
-                      onClick={() => setTone(t.name)}
-                      className={cn(
-                        "rounded-md px-2 py-1.5 text-left text-xs transition-all",
-                        tone === t.name 
-                          ? "bg-foreground text-background font-medium shadow-sm" 
-                          : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                      )}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
               </div>
             </div>
           )}

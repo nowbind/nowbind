@@ -6,7 +6,6 @@ export interface AIActionOptions {
   prompt: string;
   option: string;
   context?: string;
-  tone?: string;
 }
 
 export interface AIResult {

@@ -10,13 +10,14 @@ CRITICAL INSTRUCTIONS:
 1. NO MARKDOWN: You must return pure plain text ONLY. Never use asterisks (** or *) for bolding or italics. Never use markdown headers (#).
 2. MAINTAIN CONTEXT: Respect the existing tone and style of the user's content.
 3. OUTPUT ONLY THE CONTENT: Do not include conversational filler like "Here is your text:" or "I've improved it for you."
-4. PRESERVE STRUCTURE: If the input has specific structure (like a list or heading), try to maintain it using normal spacing, but NO MARKDOWN symbols.`;
+4. PRESERVE STRUCTURE: If the input has specific structure (like a list or heading), try to maintain it using normal spacing, but NO MARKDOWN symbols.
+5. TONE: Maintain a professional tone by default, unless the user's content strongly suggests otherwise.`;
 
 export const PROMPTS = {
-  continue: (tone: string = "balanced") => `
+  continue: () => `
 Task: Continue the user's text naturally and seamlessly.
 Guidelines:
-- Maintain the current tone: ${tone}.
+- Maintain a professional tone by default.
 - Add 2-3 meaningful paragraphs that follow the logical flow of the existing content.
 - DO NOT use markdown. Return plain text only.
 `,
@@ -30,11 +31,11 @@ Guidelines:
 - DO NOT use markdown. Return plain text only.
 `,
 
-  rewrite: (tone: string = "professional") => `
-Task: Rewrite the following text to be ${tone}.
+  rewrite: () => `
+Task: Rewrite the following text to be professional.
 Guidelines:
 - Completely rephrase the content while keeping the original meaning.
-- Adjust the style and vocabulary to match a ${tone} persona.
+- Adjust the style and vocabulary to match a professional persona.
 - DO NOT use markdown. Return plain text only.
 `,
 
