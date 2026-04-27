@@ -51,48 +51,41 @@ func (s *SocialService) Follow(ctx context.Context, followerID, followingUsernam
 		return fmt.Errorf("cannot follow yourself")
 	}
 
-	alreadyFollowing, err := s.follows.IsFollowing(ctx, followerID, target.ID)
-	if err != nil {
-		return err
-	}
-	if alreadyFollowing {
-		return fmt.Errorf("already following")
-	}
-
 	isNew, err := s.follows.Follow(ctx, followerID, target.ID)
 	if err != nil {
 		return err
 	}
-
-	if isNew {
-		go func() {
-			bgCtx := context.Background()
-			n := &model.Notification{
-				UserID:  target.ID,
-				Type:    "new_follower",
-				ActorID: &followerID,
-			}
-			if err := s.notifications.Create(bgCtx, n); err != nil {
-				log.Printf("failed to create follow notification: %v", err)
-				return
-			}
-
-			// Send push notification
-			actor, _ := s.users.GetByID(bgCtx, followerID)
-			actorName := "Someone"
-			if actor != nil {
-				actorName = actor.DisplayName
-				if actorName == "" {
-					actorName = actor.Username
-				}
-			}
-			s.notifService.SendPush(bgCtx, target.ID, PushPayload{
-				Title: "New Follower",
-				Body:  actorName + " started following you",
-				URL:   "/notifications",
-			})
-		}()
+	if !isNew {
+		return fmt.Errorf("already following")
 	}
+
+	go func() {
+		bgCtx := context.Background()
+		n := &model.Notification{
+			UserID:  target.ID,
+			Type:    "new_follower",
+			ActorID: &followerID,
+		}
+		if err := s.notifications.Create(bgCtx, n); err != nil {
+			log.Printf("failed to create follow notification: %v", err)
+			return
+		}
+
+		// Send push notification
+		actor, _ := s.users.GetByID(bgCtx, followerID)
+		actorName := "Someone"
+		if actor != nil {
+			actorName = actor.DisplayName
+			if actorName == "" {
+				actorName = actor.Username
+			}
+		}
+		s.notifService.SendPush(bgCtx, target.ID, PushPayload{
+			Title: "New Follower",
+			Body:  actorName + " started following you",
+			URL:   "/notifications",
+		})
+	}()
 
 	return nil
 }
