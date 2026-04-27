@@ -308,13 +308,24 @@ export default function ProfilePage() {
                         key={u.id}
                         user={u}
                         me={user}
-                        onFollowToggle={(nowFollowing) =>
+                        onFollowToggle={(nowFollowing) => {
+                          setFollowers((prev) =>
+                            prev.map((item) =>
+                              item.id === u.id ? { ...item, is_following: nowFollowing } : item
+                            )
+                          );
                           setProfile((prev) =>
                             prev
-                              ? { ...prev, following_count: prev.following_count + (nowFollowing ? 1 : -1) }
+                              ? {
+                                  ...prev,
+                                  following_count: Math.max(
+                                    0,
+                                    prev.following_count + (nowFollowing ? 1 : -1)
+                                  ),
+                                }
                               : prev
-                          )
-                        }
+                          );
+                        }}
                       />
                     ))}
                   </div>
@@ -353,13 +364,24 @@ export default function ProfilePage() {
                         key={u.id}
                         user={u}
                         me={user}
-                        onFollowToggle={(nowFollowing) =>
+                        onFollowToggle={(nowFollowing) => {
+                          setFollowing((prev) =>
+                            prev.map((item) =>
+                              item.id === u.id ? { ...item, is_following: nowFollowing } : item
+                            )
+                          );
                           setProfile((prev) =>
                             prev
-                              ? { ...prev, following_count: prev.following_count + (nowFollowing ? 1 : -1) }
+                              ? {
+                                  ...prev,
+                                  following_count: Math.max(
+                                    0,
+                                    prev.following_count + (nowFollowing ? 1 : -1)
+                                  ),
+                                }
                               : prev
-                          )
-                        }
+                          );
+                        }}
                       />
                     ))}
                   </div>
@@ -388,13 +410,24 @@ export default function ProfilePage() {
                       user={u}
                       me={user}
                       showFollow
-                      onFollowToggle={(nowFollowing) =>
-                        setProfile((prev) =>
-                          prev
-                            ? { ...prev, following_count: prev.following_count + (nowFollowing ? 1 : -1) }
-                            : prev
-                        )
-                      }
+                        onFollowToggle={(nowFollowing) => {
+                          setSuggested((prev) =>
+                            prev.map((item) =>
+                              item.id === u.id ? { ...item, is_following: nowFollowing } : item
+                            )
+                          );
+                          setProfile((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  following_count: Math.max(
+                                    0,
+                                    prev.following_count + (nowFollowing ? 1 : -1)
+                                  ),
+                                }
+                              : prev
+                          );
+                        }}
                     />
                   ))}
                 </div>

@@ -51,6 +51,14 @@ func (s *SocialService) Follow(ctx context.Context, followerID, followingUsernam
 		return fmt.Errorf("cannot follow yourself")
 	}
 
+	alreadyFollowing, err := s.follows.IsFollowing(ctx, followerID, target.ID)
+	if err != nil {
+		return err
+	}
+	if alreadyFollowing {
+		return fmt.Errorf("already following")
+	}
+
 	isNew, err := s.follows.Follow(ctx, followerID, target.ID)
 	if err != nil {
 		return err
