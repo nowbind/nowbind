@@ -370,7 +370,7 @@ func (r *PostRepository) Search(ctx context.Context, query string, page, perPage
 
 	var total int
 	err := r.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM posts WHERE status = 'published' AND search_vector @@ plainto_tsquery('english', $1)`,
+		`SELECT COUNT(*) FROM posts WHERE status = 'published' AND (search_vector @@ plainto_tsquery('english', $1) OR title % $1)`,
 		query,
 	).Scan(&total)
 	if err != nil {
@@ -384,9 +384,14 @@ func (r *PostRepository) Search(ctx context.Context, query string, page, perPage
 		        p.ai_summary, p.ai_keywords, p.like_count, p.comment_count,
 		        p.content_json, p.content_format,
 		        u.id, u.email, u.username, u.display_name, u.avatar_url,
-		        ts_rank(p.search_vector, plainto_tsquery('english', $1)) AS rank
+		        (
+		          (ts_rank_cd(p.search_vector, plainto_tsquery('english', $1)) * 1.0) +
+		          (similarity(p.title, $1) * 0.5) +
+		          (ln(p.like_count + 1.0) * 0.1) +
+		          (ln(p.comment_count + 1.0) * 0.1)
+		        ) AS rank
 		 FROM posts p JOIN users u ON u.id = p.author_id
-		 WHERE p.status = 'published' AND p.search_vector @@ plainto_tsquery('english', $1)
+		 WHERE p.status = 'published' AND (p.search_vector @@ plainto_tsquery('english', $1) OR p.title % $1)
 		 ORDER BY rank DESC
 		 LIMIT $2 OFFSET $3`,
 		query, perPage, offset,
