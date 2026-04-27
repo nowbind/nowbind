@@ -88,7 +88,7 @@ func Load() (*Config, error) {
 		R2BucketName:  getEnv("R2_BUCKET_NAME", ""),
 		R2PublicURL:   getEnv("R2_PUBLIC_URL", ""),
 
-		DevLogin: getEnv("c", "") == "true",
+		DevLogin: getEnv("DEV_LOGIN", "") == "true",
 	}
 
 	// Auto-detect DB mode from hostname if not set
