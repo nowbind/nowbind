@@ -78,9 +78,9 @@ function DiscoverySkeleton() {
       <section>
         {/* Section header */}
         <Skeleton className="mb-4 h-3 w-32" />
-        {/* 4 author cards in 2-col grid */}
+        {/* 6 author cards in 2-col grid */}
         <div className="grid gap-3 sm:grid-cols-2">
-          {Array.from({ length: 4 }, (_, i) => (
+          {Array.from({ length: 6 }, (_, i) => (
             <div
               key={i}
               className="flex items-center justify-between gap-3 rounded-lg border p-3"
