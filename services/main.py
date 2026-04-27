@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
 
-from shared import INTERNAL_SECRET, verify_secret
+from shared import INTERNAL_SECRET, validate_secret, verify_secret
 from nsfw_service.main import lifespan as nsfw_lifespan
 from nsfw_service.main import router as nsfw_router
 from autotag_service.router import router as autotag_router
@@ -21,6 +21,7 @@ from autotag_service.router import warmup_autotag
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Boot all ML models at startup."""
+    validate_secret()
     async with nsfw_lifespan(app):
         warmup_autotag()
         # Log secret prefix for debugging auth issues (never log full secret)

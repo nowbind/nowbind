@@ -17,7 +17,16 @@ if _env_path.exists():
             os.environ.setdefault(_key.strip(), _value.strip())
 
 
-INTERNAL_SECRET = os.getenv("MODERATION_INTERNAL_SECRET", "change-me")
+INTERNAL_SECRET = os.getenv("MODERATION_INTERNAL_SECRET", "")
+
+
+def validate_secret():
+    """Refuse to start if the internal secret is unset."""
+    if not INTERNAL_SECRET:
+        raise RuntimeError(
+            "MODERATION_INTERNAL_SECRET is unset. "
+            "Set a strong random secret (32+ chars) before starting the service."
+        )
 
 
 def verify_secret(x_internal_secret: Optional[str] = Header(default=None)):

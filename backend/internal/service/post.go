@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
@@ -203,10 +204,16 @@ func (s *PostService) Publish(ctx context.Context, postID, authorID string) erro
 	}
 
 	// Check if the post already has user-assigned tags (GetByID doesn't load Tags)
-	hasTags, _ := s.posts.HasTags(ctx, postID)
+	hasTags, err := s.posts.HasTags(ctx, postID)
+	if err != nil {
+		log.Printf("Publish: failed to check existing tags for post %s: %v", postID, err)
+	}
 
 	if !hasTags {
 		suggestions, err := s.tags.GetSuggestionsForPost(ctx, postID)
+		if err != nil {
+			log.Printf("Publish: failed to get suggestions for post %s: %v", postID, err)
+		}
 		if err == nil && len(suggestions) > 0 {
 			limit := 3
 			if len(suggestions) < limit {
@@ -220,12 +227,19 @@ func (s *PostService) Publish(ctx context.Context, postID, authorID string) erro
 				}
 				tagNames = append(tagNames, tagName)
 				// Mark suggestion as accepted
-				_ = s.tags.MarkSuggestionAccepted(ctx, postID, suggestions[i].Keyword, true)
+				if err := s.tags.MarkSuggestionAccepted(ctx, postID, suggestions[i].Keyword, true); err != nil {
+					log.Printf("Publish: failed to mark suggestion accepted for post %s, keyword %q: %v", postID, suggestions[i].Keyword, err)
+				}
 			}
-			
+
 			tagIDs, err := s.ensureTags(ctx, tagNames)
+			if err != nil {
+				log.Printf("Publish: failed to ensure tags for post %s: %v", postID, err)
+			}
 			if err == nil && len(tagIDs) > 0 {
-				_ = s.posts.SetTags(ctx, postID, tagIDs)
+				if err := s.posts.SetTags(ctx, postID, tagIDs); err != nil {
+					log.Printf("Publish: failed to auto-set tags for post %s: %v", postID, err)
+				}
 			}
 		}
 	}

@@ -77,15 +77,17 @@ export function PostSettingsPanel({
     if (!hasAutoTagged.current && tags.length === 0 && suggestions.length > 0) {
       hasAutoTagged.current = true;
       const top3 = suggestions.slice(0, 3).map((s) => s.matched_tag || s.keyword);
-      if (top3.length > 0) {
-        onTagsChange([...tags, ...top3]);
+      // Deduplicate — multiple suggestions can resolve to the same matched_tag
+      const unique = [...new Set(top3)];
+      if (unique.length > 0) {
+        onTagsChange([...tags, ...unique]);
       }
     }
   }, [suggestions, tags, onTagsChange]);
 
   const addTag = useCallback(() => {
     const tag = tagInput.trim();
-    if (tag && !tags.includes(tag)) {
+    if (tag && !tags.some((t) => t.toLowerCase() === tag.toLowerCase())) {
       onTagsChange([...tags, tag]);
       setTagInput("");
     }
@@ -177,7 +179,7 @@ export function PostSettingsPanel({
                 const tagName = suggestion?.is_existing_tag && suggestion.matched_tag
                   ? suggestion.matched_tag
                   : keyword;
-                if (!tags.includes(tagName)) {
+                if (!tags.some((t) => t.toLowerCase() === tagName.toLowerCase())) {
                   onTagsChange([...tags, tagName]);
                 }
                 acceptSuggestion(keyword);

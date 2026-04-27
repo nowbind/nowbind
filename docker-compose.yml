@@ -30,7 +30,7 @@ services:
       R2_BUCKET_NAME: ${R2_BUCKET_NAME:-}
       R2_PUBLIC_URL: ${R2_PUBLIC_URL:-}
       MODERATION_SERVICE_URL: http://ml-services:8090
-      MODERATION_INTERNAL_SECRET: ${MODERATION_INTERNAL_SECRET:-change-me}
+      MODERATION_INTERNAL_SECRET: ${MODERATION_INTERNAL_SECRET:?Set MODERATION_INTERNAL_SECRET in .env}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
@@ -74,7 +74,7 @@ services:
       dockerfile: Dockerfile
     container_name: nowbind-ml
     environment:
-      MODERATION_INTERNAL_SECRET: ${MODERATION_INTERNAL_SECRET:-change-me}
+      MODERATION_INTERNAL_SECRET: ${MODERATION_INTERNAL_SECRET:?Set MODERATION_INTERNAL_SECRET in .env}
     ports:
       - "8090:8090"
     healthcheck:

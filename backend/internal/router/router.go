@@ -59,11 +59,15 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 		moderationClient = moderation.NewClient(cfg.ModerationServiceURL, cfg.ModerationInternalSecret)
 	}
 
+	// Business-logic services for moderation and tag suggestions
+	moderationService := service.NewModerationService(moderationClient, moderationRepo)
+	tagSuggestionService := service.NewTagSuggestionService(moderationClient, tagRepo)
+
 	// Handlers
 	healthH := handler.NewHealthHandler()
 	authH := handler.NewAuthHandler(authService, cfg, loginLogRepo, pool)
-	socialH := handler.NewSocialHandler(socialService, followRepo, likeRepo, bookmarkRepo, commentRepo, postRepo, userRepo, moderationClient)
-	postH := handler.NewPostHandler(postService, postRepo, tagRepo, socialH, moderationClient, moderationRepo)
+	socialH := handler.NewSocialHandler(socialService, followRepo, likeRepo, bookmarkRepo, commentRepo, postRepo, userRepo, moderationService)
+	postH := handler.NewPostHandler(postService, postRepo, socialH, moderationService, tagSuggestionService)
 	userH := handler.NewUserHandler(userRepo, postRepo, followRepo, socialH)
 	tagH := handler.NewTagHandler(tagRepo, postRepo, socialH)
 	searchH := handler.NewSearchHandler(postRepo, userRepo, followRepo, socialH)

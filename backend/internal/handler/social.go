@@ -2,27 +2,25 @@ package handler
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/nowbind/nowbind/internal/middleware"
 	"github.com/nowbind/nowbind/internal/model"
-	"github.com/nowbind/nowbind/internal/moderation"
 	"github.com/nowbind/nowbind/internal/repository"
 	"github.com/nowbind/nowbind/internal/service"
 )
 
 type SocialHandler struct {
-	social           *service.SocialService
-	follows          *repository.FollowRepository
-	likes            *repository.LikeRepository
-	bookmarks        *repository.BookmarkRepository
-	comments         *repository.CommentRepository
-	posts            *repository.PostRepository
-	users            *repository.UserRepository
-	moderationClient *moderation.Client
+	social            *service.SocialService
+	follows           *repository.FollowRepository
+	likes             *repository.LikeRepository
+	bookmarks         *repository.BookmarkRepository
+	comments          *repository.CommentRepository
+	posts             *repository.PostRepository
+	users             *repository.UserRepository
+	moderationService *service.ModerationService
 }
 
 func NewSocialHandler(
@@ -33,17 +31,17 @@ func NewSocialHandler(
 	comments *repository.CommentRepository,
 	posts *repository.PostRepository,
 	users *repository.UserRepository,
-	moderationClient *moderation.Client,
+	moderationService *service.ModerationService,
 ) *SocialHandler {
 	return &SocialHandler{
-		social:           social,
-		follows:          follows,
-		likes:            likes,
-		bookmarks:        bookmarks,
-		comments:         comments,
-		posts:            posts,
-		users:            users,
-		moderationClient: moderationClient,
+		social:            social,
+		follows:           follows,
+		likes:             likes,
+		bookmarks:         bookmarks,
+		comments:          comments,
+		posts:             posts,
+		users:             users,
+		moderationService: moderationService,
 	}
 }
 
@@ -385,14 +383,11 @@ func (h *SocialHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
 
 	// Run content moderation before persisting.
 	// Comments have no draft/review state, so block on ANY unsafe result.
-	if h.moderationClient != nil {
-		result, err := h.moderationClient.ModerateComment(r.Context(), "", req.Content)
-		if err != nil {
-			// Moderation service is down — fail open (log and allow)
-			log.Printf("moderation service unavailable for comment: %v", err)
-		} else if !result.Safe {
+	if h.moderationService.Enabled() {
+		outcome := h.moderationService.ModerateComment(r.Context(), "", req.Content)
+		if outcome.Blocked {
 			writeJSON(w, http.StatusUnprocessableEntity, map[string]string{
-				"error": result.Message,
+				"error": outcome.Message,
 			})
 			return
 		}
@@ -447,13 +442,11 @@ func (h *SocialHandler) UpdateComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Run content moderation before persisting the edit
-	if h.moderationClient != nil {
-		result, err := h.moderationClient.ModerateComment(r.Context(), commentID, req.Content)
-		if err != nil {
-			log.Printf("moderation service unavailable for comment edit: %v", err)
-		} else if !result.Safe {
+	if h.moderationService.Enabled() {
+		outcome := h.moderationService.ModerateComment(r.Context(), commentID, req.Content)
+		if outcome.Blocked {
 			writeJSON(w, http.StatusUnprocessableEntity, map[string]string{
-				"error": result.Message,
+				"error": outcome.Message,
 			})
 			return
 		}

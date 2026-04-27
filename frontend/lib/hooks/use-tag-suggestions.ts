@@ -74,7 +74,11 @@ export function useTagSuggestions({
           (s) => s.accepted === null
         );
         if (pending.length > 0) {
-          setSuggestions(pending);
+          const byKeyword = new Map<string, TagSuggestion>();
+          for (const s of pending) {
+            byKeyword.set(s.keyword, s);
+          }
+          setSuggestions(Array.from(byKeyword.values()));
         }
       })
       .catch(() => {});
@@ -105,18 +109,25 @@ export function useTagSuggestions({
         );
 
         setSuggestions((prev) => {
-          // Merge new suggestions with existing ones (deduplicated)
-          const existingKeywords = new Set(prev.map((s) => s.keyword));
           const selectedLower = new Set(
             selectedTags.map((t) => t.toLowerCase())
           );
-          const newOnes = (data.suggestions || []).filter(
-            (s) =>
-              !existingKeywords.has(s.keyword) &&
-              !sessionDismissed.current.has(s.keyword) &&
-              !selectedLower.has(s.keyword)
-          );
-          return [...prev, ...newOnes];
+
+          const byKeyword = new Map<string, TagSuggestion>();
+          for (const s of prev) {
+            byKeyword.set(s.keyword, s);
+          }
+          for (const s of data.suggestions || []) {
+            if (
+              sessionDismissed.current.has(s.keyword) ||
+              selectedLower.has(s.keyword)
+            ) {
+              continue;
+            }
+            byKeyword.set(s.keyword, s);
+          }
+
+          return Array.from(byKeyword.values());
         });
       } catch {
         // Fail silently — suggestions are a nice-to-have
