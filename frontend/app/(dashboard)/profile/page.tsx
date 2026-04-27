@@ -40,6 +40,13 @@ export default function ProfilePage() {
   const [followingPage, setFollowingPage] = useState(1);
   const [followersTotalPages, setFollowersTotalPages] = useState(1);
   const [followingTotalPages, setFollowingTotalPages] = useState(1);
+  const [followersRefreshKey, setFollowersRefreshKey] = useState(0);
+  const [followingRefreshKey, setFollowingRefreshKey] = useState(0);
+
+  const refreshFollowLists = () => {
+    setFollowersRefreshKey((key) => key + 1);
+    setFollowingRefreshKey((key) => key + 1);
+  };
 
   useEffect(() => {
     if (authLoading) return;
@@ -73,7 +80,7 @@ export default function ProfilePage() {
         setFollowersTotalPages(res.total_pages);
       })
       .catch((err) => console.error("Failed to load followers:", err));
-  }, [user, followersPage]);
+  }, [user, followersPage, followersRefreshKey]);
 
   useEffect(() => {
     if (!user) return;
@@ -87,7 +94,7 @@ export default function ProfilePage() {
         setFollowingTotalPages(res.total_pages);
       })
       .catch((err) => console.error("Failed to load following:", err));
-  }, [user, followingPage]);
+  }, [user, followingPage, followingRefreshKey]);
 
   // Fetch suggested users to follow (from explore/recent authors)
   useEffect(() => {
@@ -325,6 +332,7 @@ export default function ProfilePage() {
                                 }
                               : prev
                           );
+                          refreshFollowLists();
                         }}
                       />
                     ))}
@@ -381,6 +389,7 @@ export default function ProfilePage() {
                                 }
                               : prev
                           );
+                          refreshFollowLists();
                         }}
                       />
                     ))}
@@ -410,24 +419,25 @@ export default function ProfilePage() {
                       user={u}
                       me={user}
                       showFollow
-                        onFollowToggle={(nowFollowing) => {
-                          setSuggested((prev) =>
-                            prev.map((item) =>
-                              item.id === u.id ? { ...item, is_following: nowFollowing } : item
-                            )
-                          );
-                          setProfile((prev) =>
-                            prev
-                              ? {
-                                  ...prev,
-                                  following_count: Math.max(
-                                    0,
-                                    prev.following_count + (nowFollowing ? 1 : -1)
-                                  ),
-                                }
-                              : prev
-                          );
-                        }}
+                      onFollowToggle={(nowFollowing) => {
+                        setSuggested((prev) =>
+                          prev.map((item) =>
+                            item.id === u.id ? { ...item, is_following: nowFollowing } : item
+                          )
+                        );
+                        setProfile((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                following_count: Math.max(
+                                  0,
+                                  prev.following_count + (nowFollowing ? 1 : -1)
+                                ),
+                              }
+                            : prev
+                        );
+                        refreshFollowLists();
+                      }}
                     />
                   ))}
                 </div>
