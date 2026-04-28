@@ -55,8 +55,9 @@ func (s *SocialService) Follow(ctx context.Context, followerID, followingUsernam
 	if err != nil {
 		return err
 	}
+	// Idempotent: treat existing relationship as success
 	if !isNew {
-		return fmt.Errorf("already following")
+		return nil
 	}
 
 	go func() {
