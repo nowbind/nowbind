@@ -90,8 +90,11 @@ export default function SettingsPage() {
       
       if (passkeySupported) {
         passkeyApi.listCredentials()
-          .then(setPasskeys)
-          .catch((err) => console.error("Failed to load passkeys:", err));
+          .then((creds) => setPasskeys(creds || []))
+          .catch((err) => {
+            console.error("Failed to load passkeys:", err);
+            setPasskeys([]);
+          });
       }
     }
   }, [user, authLoading, router, passkeySupported]);
@@ -177,8 +180,12 @@ export default function SettingsPage() {
     if (success) {
       setShowAddPasskey(false);
       setPasskeyName("");
-      const updated = await passkeyApi.listCredentials();
-      setPasskeys(updated);
+      try {
+        const updated = await passkeyApi.listCredentials();
+        setPasskeys(updated || []);
+      } catch (err) {
+        console.error("Failed to refresh passkeys:", err);
+      }
     }
   };
 
