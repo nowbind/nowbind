@@ -20,9 +20,11 @@ import {
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useMediaUpload } from "@/lib/hooks/use-media-upload";
+import { usePasskey } from "@/lib/hooks/use-passkey";
+import { passkeyApi } from "@/lib/api";
 import type { NotificationPreferences } from "@/lib/types";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Save, Download, Trash2, Upload, Globe, Twitter, Github } from "lucide-react";
+import { Loader2, Save, Download, Trash2, Upload, Globe, Twitter, Github, Fingerprint, Plus, X } from "lucide-react";
 import { API_URL } from "@/lib/constants";
 import { toast } from "sonner";
 
@@ -30,6 +32,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const { user, loading: authLoading, refetch } = useAuth();
   const { uploadMedia, uploading: avatarUploading } = useMediaUpload();
+  const { isSupported: passkeySupported, register: registerPasskey, isLoading: passkeyLoading } = usePasskey();
 
   // Profile fields
   const [displayName, setDisplayName] = useState("");
@@ -49,6 +52,16 @@ export default function SettingsPage() {
 
   // Notification preferences
   const [notifPrefs, setNotifPrefs] = useState<NotificationPreferences | null>(null);
+
+  // Passkeys
+  const [passkeys, setPasskeys] = useState<Array<{
+    id: string;
+    name: string;
+    created_at: string;
+    last_used_at?: string;
+  }>>([]);
+  const [passkeyName, setPasskeyName] = useState("");
+  const [showAddPasskey, setShowAddPasskey] = useState(false);
 
   // Delete account
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -74,8 +87,14 @@ export default function SettingsPage() {
         .get<NotificationPreferences>("/notifications/preferences")
         .then(setNotifPrefs)
         .catch((err) => console.error("Failed to load notification preferences:", err));
+      
+      if (passkeySupported) {
+        passkeyApi.listCredentials()
+          .then(setPasskeys)
+          .catch((err) => console.error("Failed to load passkeys:", err));
+      }
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, passkeySupported]);
 
   const handleAvatarUpload = async () => {
     const input = document.createElement("input");
@@ -149,6 +168,27 @@ export default function SettingsPage() {
     } finally {
       setDeleting(false);
       setDeleteDialogOpen(false);
+    }
+  };
+
+  const handleAddPasskey = async () => {
+    const name = passkeyName.trim() || "Passkey";
+    const success = await registerPasskey(name);
+    if (success) {
+      setShowAddPasskey(false);
+      setPasskeyName("");
+      const updated = await passkeyApi.listCredentials();
+      setPasskeys(updated);
+    }
+  };
+
+  const handleDeletePasskey = async (id: string) => {
+    try {
+      await passkeyApi.deleteCredential(id);
+      setPasskeys(passkeys.filter(p => p.id !== id));
+      toast.success("Passkey removed");
+    } catch {
+      toast.error("Failed to remove passkey");
     }
   };
 
@@ -338,6 +378,97 @@ export default function SettingsPage() {
                       />
                     </div>
                   </div>
+                </section>
+              )}
+
+              {/* Passkeys section */}
+              {passkeySupported && (
+                <section className="space-y-4 border-t pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-lg font-semibold">Passkeys</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Sign in securely with biometrics or security keys.
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => setShowAddPasskey(true)}
+                      disabled={showAddPasskey}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Passkey
+                    </Button>
+                  </div>
+
+                  {showAddPasskey && (
+                    <div className="rounded-lg border p-4 space-y-3">
+                      <Input
+                        placeholder="Passkey name (e.g., iPhone, MacBook)"
+                        value={passkeyName}
+                        onChange={(e) => setPasskeyName(e.target.value)}
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={handleAddPasskey}
+                          disabled={passkeyLoading}
+                          size="sm"
+                        >
+                          {passkeyLoading ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Fingerprint className="mr-2 h-4 w-4" />
+                          )}
+                          Register
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setShowAddPasskey(false);
+                            setPasskeyName("");
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {passkeys.length > 0 ? (
+                    <div className="space-y-2">
+                      {passkeys.map((passkey) => (
+                        <div
+                          key={passkey.id}
+                          className="flex items-center justify-between rounded-lg border p-3"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Fingerprint className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                              <p className="text-sm font-medium">{passkey.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                Added {new Date(passkey.created_at).toLocaleDateString()}
+                                {passkey.last_used_at && (
+                                  <> · Last used {new Date(passkey.last_used_at).toLocaleDateString()}</>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeletePasskey(passkey.id)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No passkeys registered yet.
+                    </p>
+                  )}
                 </section>
               )}
 

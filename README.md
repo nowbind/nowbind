@@ -33,7 +33,7 @@ Your blog becomes a knowledge base that both people and AI can read, search, and
 
 **Writing** -- Markdown editor with live preview, GFM support, tags, drafts, reading time estimation, and full-text search (PostgreSQL tsvector + trigram fuzzy matching).
 
-**Auth** -- Google & GitHub OAuth, passwordless magic links via Gmail, JWT + refresh tokens with HttpOnly cookies.
+**Auth** -- Google & GitHub OAuth, passwordless magic links via Gmail, passkeys (WebAuthn/FIDO2), JWT + refresh tokens with HttpOnly cookies.
 
 **Social** -- Follow authors, likes, bookmarks, threaded comments, personalized feed, in-app + browser push notifications (VAPID/Web Push), share buttons.
 
@@ -65,7 +65,7 @@ In-app migration page: `/docs/migrate`
 | **Framework** | chi v5 | Next.js 16 (App Router), React 19 |
 | **Database** | PostgreSQL 16 (pgx/v5) | -- |
 | **Styling** | -- | Tailwind CSS v4, shadcn/ui |
-| **Auth** | JWT, OAuth2, magic links | Cookie-based sessions |
+| **Auth** | JWT, OAuth2, magic links, passkeys | Cookie-based sessions |
 | **Other** | webpush-go, Gmail OAuth2 SMTP | Serwist (PWA), Lucide icons, react-markdown |
 
 ## Quick Start
@@ -135,6 +135,9 @@ Or use `make dev` from the project root to run backend + frontend once Postgres 
 | `GMAIL_REFRESH_TOKEN` | No | Gmail OAuth2 refresh token |
 | `VAPID_PUBLIC_KEY` | No | Web push (generate with `npx web-push generate-vapid-keys`) |
 | `VAPID_PRIVATE_KEY` | No | Web push |
+| `PASSKEY_RP_ID` | No | Passkey relying party ID (domain, default: `localhost`) |
+| `PASSKEY_RP_NAME` | No | Passkey display name (default: `NowBind`) |
+| `PASSKEY_RP_ORIGIN` | No | Passkey origin URL (default: `http://localhost:3000`) |
 
 ### Frontend (`.env.local`)
 
@@ -235,6 +238,12 @@ Full interactive docs at `/docs` on any running instance.
 | GET | `/api/v1/auth/me` | JWT |
 | GET | `/api/v1/auth/oauth/google` | -- |
 | GET | `/api/v1/auth/oauth/github` | -- |
+| POST | `/api/v1/auth/passkey/register/begin` | JWT |
+| POST | `/api/v1/auth/passkey/register/finish` | JWT |
+| POST | `/api/v1/auth/passkey/login/begin` | -- |
+| POST | `/api/v1/auth/passkey/login/finish` | -- |
+| GET | `/api/v1/auth/passkey/credentials` | JWT |
+| DELETE | `/api/v1/auth/passkey/credentials/{id}` | JWT |
 
 </details>
 
@@ -349,6 +358,7 @@ cd backend && go run cmd/server/main.go -migrate
 | `005_search` | tsvector + GIN/trigram indexes |
 | `006_social` | `follows`, `post_likes`, `comments`, `bookmarks`, `notifications`, `push_subscriptions`, `notification_preferences` |
 | `007_tracking` | `login_logs`, `api_key_usage` |
+| `014_passkeys` | `passkey_credentials`, `passkey_challenges` |
 
 Neon databases are auto-detected and configured with appropriate pooling.
 

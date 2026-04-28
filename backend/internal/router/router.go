@@ -1,6 +1,7 @@
 package router
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -42,6 +43,7 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 	pushRepo := repository.NewPushRepository(pool)
 	loginLogRepo := repository.NewLoginLogRepository(pool)
 	mediaRepo := repository.NewMediaRepository(pool)
+	passkeyRepo := repository.NewPasskeyRepository(pool)
 
 	// Services
 	emailService := service.NewEmailService(cfg)
@@ -50,6 +52,10 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 	notifService := service.NewNotificationService(notifRepo, pushRepo, cfg.VAPIDPublicKey, cfg.VAPIDPrivateKey, cfg.FrontendURL)
 	socialService := service.NewSocialService(followRepo, likeRepo, bookmarkRepo, commentRepo, notifRepo, userRepo, postRepo, notifService)
 	mediaService := service.NewMediaService(cfg, mediaRepo)
+	passkeyService, err := service.NewPasskeyService(cfg.PasskeyRPID, cfg.PasskeyRPName, cfg.PasskeyRPOrigin, passkeyRepo, userRepo, sessionRepo, cfg.JWTSecret)
+	if err != nil {
+		panic(fmt.Sprintf("failed to initialize passkey service: %v", err))
+	}
 
 	// Handlers
 	healthH := handler.NewHealthHandler()
@@ -68,6 +74,7 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 	mediaH := handler.NewMediaHandler(mediaService)
 	importService := service.NewImportService(postRepo, tagRepo)
 	importH := handler.NewImportHandler(importService)
+	passkeyH := handler.NewPasskeyHandler(passkeyService)
 
 	// Health
 	r.Get("/health", healthH.Health)
@@ -100,6 +107,14 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 			// Dev-only login (requires DEV_LOGIN=true)
 			r.Get("/dev-login/status", authH.DevLoginStatus)
 			r.Post("/dev-login", authH.DevLogin)
+
+			// Passkey authentication
+			r.Post("/passkey/login/begin", passkeyH.BeginLogin)
+			r.Post("/passkey/login/finish", passkeyH.FinishLogin)
+			r.With(middleware.AuthMiddleware(cfg.JWTSecret, pool)).Post("/passkey/register/begin", passkeyH.BeginRegistration)
+			r.With(middleware.AuthMiddleware(cfg.JWTSecret, pool)).Post("/passkey/register/finish", passkeyH.FinishRegistration)
+			r.With(middleware.AuthMiddleware(cfg.JWTSecret, pool)).Get("/passkey/credentials", passkeyH.ListCredentials)
+			r.With(middleware.AuthMiddleware(cfg.JWTSecret, pool)).Delete("/passkey/credentials/{id}", passkeyH.DeleteCredential)
 		})
 
 		// Posts (public)

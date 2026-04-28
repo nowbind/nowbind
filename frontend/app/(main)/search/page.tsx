@@ -55,13 +55,13 @@ function DiscoverySkeleton() {
       <section>
         {/* Section header: icon + "TRENDING" label + "Explore →" link */}
         <div className="mb-4 flex items-center justify-between">
-          <Skeleton className="h-3 w-24" />
-          <Skeleton className="h-3 w-16" />
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-4 w-20" />
         </div>
         {/* 6 trending cards in 2-col grid */}
         <div className="grid gap-3 sm:grid-cols-2">
           {Array.from({ length: 6 }, (_, i) => (
-            <div key={i} className="rounded-lg border p-4 space-y-2">
+            <div key={i} className="rounded-lg border p-4 space-y-2 min-h-[100px]">
               {/* "#1" number badge */}
               <Skeleton className="h-3 w-6" />
               {/* Post title (2 lines) */}
@@ -77,13 +77,13 @@ function DiscoverySkeleton() {
       {/* Follow Authors section */}
       <section>
         {/* Section header */}
-        <Skeleton className="mb-4 h-3 w-32" />
+        <Skeleton className="mb-4 h-4 w-32" />
         {/* 6 author cards in 2-col grid */}
         <div className="grid gap-3 sm:grid-cols-2">
           {Array.from({ length: 6 }, (_, i) => (
             <div
               key={i}
-              className="flex items-center justify-between gap-3 rounded-lg border p-3"
+              className="flex items-center justify-between gap-3 rounded-lg border p-3 min-h-[64px]"
             >
               {/* Avatar + name + handle */}
               <div className="flex items-center gap-2.5 min-w-0">
@@ -103,7 +103,7 @@ function DiscoverySkeleton() {
       {/* Topics section */}
       <section>
         {/* Section header */}
-        <Skeleton className="mb-4 h-3 w-20" />
+        <Skeleton className="mb-4 h-4 w-20" />
         {/* Topic pills */}
         <div className="flex flex-wrap gap-2">
           {[72, 88, 56, 80, 64, 96, 72, 60, 84, 68, 76, 60, 88, 72].map(

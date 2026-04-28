@@ -50,6 +50,11 @@ type Config struct {
 
 	// Dev login – must be explicitly set to "true" to enable the dev-login endpoint
 	DevLogin bool
+
+	// Passkey (WebAuthn)
+	PasskeyRPID     string
+	PasskeyRPName   string
+	PasskeyRPOrigin string
 }
 
 func Load() (*Config, error) {
@@ -89,6 +94,10 @@ func Load() (*Config, error) {
 		R2PublicURL:   getEnv("R2_PUBLIC_URL", ""),
 
 		DevLogin: getEnv("DEV_LOGIN", "") == "true",
+
+		PasskeyRPID:     getEnv("PASSKEY_RP_ID", "localhost"),
+		PasskeyRPName:   getEnv("PASSKEY_RP_NAME", "NowBind"),
+		PasskeyRPOrigin: getEnv("PASSKEY_RP_ORIGIN", "http://localhost:3000"),
 	}
 
 	// Auto-detect DB mode from hostname if not set
