@@ -310,6 +310,15 @@ func (r *PostRepository) IsSlugTaken(ctx context.Context, slug string, excludePo
 	return count > 0, err
 }
 
+func (r *PostRepository) HasTags(ctx context.Context, postID string) (bool, error) {
+	var count int
+	err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM post_tags WHERE post_id = $1`, postID).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("checking post tags: %w", err)
+	}
+	return count > 0, nil
+}
+
 func (r *PostRepository) Delete(ctx context.Context, id string) error {
 	_, err := r.pool.Exec(ctx, "DELETE FROM posts WHERE id = $1", id)
 	return err

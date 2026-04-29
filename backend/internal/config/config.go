@@ -50,6 +50,10 @@ type Config struct {
 
 	// Dev login – must be explicitly set to "true" to enable the dev-login endpoint
 	DevLogin bool
+
+	// Content Moderation
+	ModerationServiceURL    string // e.g. "http://ml-services:8090"
+	ModerationInternalSecret string
 }
 
 func Load() (*Config, error) {
@@ -89,6 +93,9 @@ func Load() (*Config, error) {
 		R2PublicURL:   getEnv("R2_PUBLIC_URL", ""),
 
 		DevLogin: getEnv("DEV_LOGIN", "") == "true",
+
+		ModerationServiceURL:    getEnv("MODERATION_SERVICE_URL", ""),
+		ModerationInternalSecret: getEnv("MODERATION_INTERNAL_SECRET", ""),
 	}
 
 	// Auto-detect DB mode from hostname if not set

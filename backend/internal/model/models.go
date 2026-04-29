@@ -240,3 +240,16 @@ type ReferrerStat struct {
 	Referrer string `json:"referrer"`
 	Count    int    `json:"count"`
 }
+
+// PostTagSuggestion is an ML-suggested tag for a post.
+type PostTagSuggestion struct {
+	ID            string     `json:"id"`
+	PostID        string     `json:"post_id"`
+	Keyword       string     `json:"keyword"`
+	Score         float64    `json:"score"`
+	IsExistingTag bool       `json:"is_existing_tag"`
+	MatchedTag    *string    `json:"matched_tag,omitempty"`
+	Accepted      *bool      `json:"accepted"`      // nil = pending, true = accepted, false = dismissed
+	AcceptedAt    *time.Time `json:"accepted_at,omitempty"`
+	CreatedAt     time.Time  `json:"created_at"`
+}

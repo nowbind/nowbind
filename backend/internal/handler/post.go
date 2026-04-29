@@ -12,13 +12,27 @@ import (
 )
 
 type PostHandler struct {
-	postService *service.PostService
-	postRepo    *repository.PostRepository
-	socialH     *SocialHandler
+	postService          *service.PostService
+	postRepo             *repository.PostRepository
+	socialH              *SocialHandler
+	moderationService    *service.ModerationService
+	tagSuggestionService *service.TagSuggestionService
 }
 
-func NewPostHandler(postService *service.PostService, postRepo *repository.PostRepository, socialH *SocialHandler) *PostHandler {
-	return &PostHandler{postService: postService, postRepo: postRepo, socialH: socialH}
+func NewPostHandler(
+	postService *service.PostService,
+	postRepo *repository.PostRepository,
+	socialH *SocialHandler,
+	moderationService *service.ModerationService,
+	tagSuggestionService *service.TagSuggestionService,
+) *PostHandler {
+	return &PostHandler{
+		postService:          postService,
+		postRepo:             postRepo,
+		socialH:              socialH,
+		moderationService:    moderationService,
+		tagSuggestionService: tagSuggestionService,
+	}
 }
 
 func (h *PostHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -130,6 +144,31 @@ func (h *PostHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// If the post is already published, moderate the incoming content before saving
+	if h.moderationService.Enabled() {
+		existing, err := h.postRepo.GetByID(r.Context(), postID)
+		if err == nil && existing != nil && existing.Status == "published" && existing.AuthorID == userID {
+			// Extract the actual body text for moderation.
+			// The frontend sends content_json (TipTap JSON), not content (plain text).
+			bodyText := service.ExtractBodyText(input.Content, input.ContentJSON)
+			text := input.Title + "\n" + input.Subtitle + "\n" + bodyText
+
+			// Collect image URLs from body + feature image
+			imageURLs := service.CollectImageURLs(input.Content, input.ContentJSON)
+			if input.FeatureImage != nil && *input.FeatureImage != "" {
+				imageURLs = append(imageURLs, *input.FeatureImage)
+			}
+
+			outcome := h.moderationService.ModerateContent(r.Context(), "post", postID, text, imageURLs)
+			if outcome.Blocked {
+				writeJSON(w, http.StatusUnprocessableEntity, map[string]string{
+					"error": outcome.Message,
+				})
+				return
+			}
+		}
+	}
+
 	post, err := h.postService.Update(r.Context(), postID, userID, input)
 	if err != nil {
 		if err.Error() == "unauthorized" {
@@ -162,6 +201,42 @@ func (h *PostHandler) Delete(w http.ResponseWriter, r *http.Request) {
 func (h *PostHandler) Publish(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetUserID(r.Context())
 	postID := chi.URLParam(r, "id")
+
+	// Fetch the post first for moderation
+	post, err := h.postRepo.GetByID(r.Context(), postID)
+	if err != nil || post == nil {
+		writeError(w, http.StatusNotFound, "post not found")
+		return
+	}
+	if post.AuthorID != userID {
+		writeError(w, http.StatusForbidden, "not your post")
+		return
+	}
+
+	// Run content moderation before publishing
+	if h.moderationService.Enabled() {
+		// Extract body text — prefer ContentJSON (TipTap) over Content (markdown)
+		contentJSON := ""
+		if post.ContentJSON != nil {
+			contentJSON = *post.ContentJSON
+		}
+		bodyText := service.ExtractBodyText(post.Content, contentJSON)
+		text := post.Title + "\n" + post.Subtitle + "\n" + bodyText
+
+		// Collect image URLs from body AND the feature image
+		imageURLs := service.CollectImageURLs(post.Content, contentJSON)
+		if post.FeatureImage != "" {
+			imageURLs = append(imageURLs, post.FeatureImage)
+		}
+
+		outcome := h.moderationService.ModerateContent(r.Context(), "post", post.ID, text, imageURLs)
+		if outcome.Blocked {
+			writeJSON(w, http.StatusUnprocessableEntity, map[string]string{
+				"error": outcome.Message,
+			})
+			return
+		}
+	}
 
 	if err := h.postService.Publish(r.Context(), postID, userID); err != nil {
 		writeError(w, http.StatusBadRequest, safePostError(err))

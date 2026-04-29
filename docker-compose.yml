@@ -29,6 +29,8 @@ services:
       R2_SECRET_KEY: ${R2_SECRET_KEY:-}
       R2_BUCKET_NAME: ${R2_BUCKET_NAME:-}
       R2_PUBLIC_URL: ${R2_PUBLIC_URL:-}
+      MODERATION_SERVICE_URL: http://ml-services:8090
+      MODERATION_INTERNAL_SECRET: ${MODERATION_INTERNAL_SECRET:?Set MODERATION_INTERNAL_SECRET in .env}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
@@ -39,6 +41,9 @@ services:
       timeout: 5s
       retries: 10
     restart: unless-stopped
+    depends_on:
+      ml-services:
+        condition: service_started
 
   frontend:
     build:
@@ -61,4 +66,20 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
+
+  ml-services:
+    build:
+      context: ./services
+      dockerfile: Dockerfile
+    container_name: nowbind-ml
+    environment:
+      MODERATION_INTERNAL_SECRET: ${MODERATION_INTERNAL_SECRET:?Set MODERATION_INTERNAL_SECRET in .env}
+    ports:
+      - "8090:8090"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8090/health')\" || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
     restart: unless-stopped

@@ -125,6 +125,20 @@ See `backend/.env.example` for all options.
 - Migrations run automatically on server startup
 - Never modify an existing migration that has been merged — create a new one
 
+## Content Moderation
+
+The platform includes an automated content moderation pipeline (`services/nsfw_service/`) for NSFW and spam detection. When changing moderation logic:
+
+- **Thresholds**: Adjustments to detection thresholds live in `services/nsfw_service/models/`. Lower thresholds = stricter.
+- **Fail-open**: The Go backend allows content if the moderation service is unreachable. Do not change this without discussion.
+- **PR checklist**: Before merging moderation changes, verify:
+  - [ ] Clean text/images pass moderation (`action: allow`)
+  - [ ] Known NSFW/spam text triggers a block (`action: block`)
+  - [ ] The frontend shows the `Content Policy Violation` toast on 422
+  - [ ] The `moderation_flags` table is populated correctly
+  - [ ] The backend builds cleanly (`cd backend && go build ./...`)
+
+
 ## Reporting Bugs
 
 Open an issue with:

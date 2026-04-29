@@ -11,6 +11,7 @@ import (
 	"github.com/nowbind/nowbind/internal/handler"
 	"github.com/nowbind/nowbind/internal/mcp"
 	"github.com/nowbind/nowbind/internal/middleware"
+	"github.com/nowbind/nowbind/internal/moderation"
 	"github.com/nowbind/nowbind/internal/repository"
 	"github.com/nowbind/nowbind/internal/service"
 )
@@ -42,6 +43,7 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 	pushRepo := repository.NewPushRepository(pool)
 	loginLogRepo := repository.NewLoginLogRepository(pool)
 	mediaRepo := repository.NewMediaRepository(pool)
+	moderationRepo := repository.NewModerationRepository(pool)
 
 	// Services
 	emailService := service.NewEmailService(cfg)
@@ -51,11 +53,21 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 	socialService := service.NewSocialService(followRepo, likeRepo, bookmarkRepo, commentRepo, notifRepo, userRepo, postRepo, notifService)
 	mediaService := service.NewMediaService(cfg, mediaRepo)
 
+	// Moderation client (optional — only created if URL is configured)
+	var moderationClient *moderation.Client
+	if cfg.ModerationServiceURL != "" {
+		moderationClient = moderation.NewClient(cfg.ModerationServiceURL, cfg.ModerationInternalSecret)
+	}
+
+	// Business-logic services for moderation and tag suggestions
+	moderationService := service.NewModerationService(moderationClient, moderationRepo)
+	tagSuggestionService := service.NewTagSuggestionService(moderationClient, tagRepo)
+
 	// Handlers
 	healthH := handler.NewHealthHandler()
 	authH := handler.NewAuthHandler(authService, cfg, loginLogRepo, pool)
-	socialH := handler.NewSocialHandler(socialService, followRepo, likeRepo, bookmarkRepo, commentRepo, postRepo, userRepo)
-	postH := handler.NewPostHandler(postService, postRepo, socialH)
+	socialH := handler.NewSocialHandler(socialService, followRepo, likeRepo, bookmarkRepo, commentRepo, postRepo, userRepo, moderationService)
+	postH := handler.NewPostHandler(postService, postRepo, socialH, moderationService, tagSuggestionService)
 	userH := handler.NewUserHandler(userRepo, postRepo, followRepo, socialH)
 	tagH := handler.NewTagHandler(tagRepo, postRepo, socialH)
 	searchH := handler.NewSearchHandler(postRepo, userRepo, followRepo, socialH)
@@ -122,6 +134,11 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 				r.Delete("/{id}/like", socialH.UnlikePost)
 				r.Post("/{id}/bookmark", socialH.BookmarkPost)
 				r.Delete("/{id}/bookmark", socialH.UnbookmarkPost)
+
+				// Tag suggestions (ML-powered)
+				r.Post("/{id}/suggest-tags", postH.SuggestTags)
+				r.Post("/{id}/suggest-tags/accept", postH.AcceptTagSuggestion)
+				r.Get("/{id}/suggestions", postH.GetSuggestions)
 			})
 
 			// Comments (public read, auth write)

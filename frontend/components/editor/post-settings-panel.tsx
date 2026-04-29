@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,8 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { useMediaUpload } from "@/lib/hooks/use-media-upload";
+import { useTagSuggestions } from "@/lib/hooks/use-tag-suggestions";
+import { TagSuggestions } from "./tag-suggestions";
 import { X, Upload, Star, Loader2, Image as ImageIcon } from "lucide-react";
 
 interface PostSettingsPanelProps {
@@ -29,6 +31,11 @@ interface PostSettingsPanelProps {
   featureImage: string;
   onFeatureImageChange: (url: string) => void;
   slugPrefix?: string;
+  // Auto-tag suggestion context
+  postId?: string;
+  title?: string;
+  subtitle?: string;
+  content?: string;
 }
 
 export function PostSettingsPanel({
@@ -45,13 +52,42 @@ export function PostSettingsPanel({
   featureImage,
   onFeatureImageChange,
   slugPrefix = "nowbind.com/post/",
+  postId = "",
+  title = "",
+  subtitle = "",
+  content = "",
 }: PostSettingsPanelProps) {
   const { uploadMedia, uploading } = useMediaUpload();
   const [tagInput, setTagInput] = useState("");
 
+  const { suggestions, isLoading: suggestionsLoading, acceptSuggestion, dismissSuggestion } =
+    useTagSuggestions({
+      postId,
+      title,
+      subtitle,
+      excerpt,
+      content,
+      selectedTags: tags,
+    });
+
+  const hasAutoTagged = useRef(false);
+
+  useEffect(() => {
+    // Only auto-tag once per session if there are no tags selected yet
+    if (!hasAutoTagged.current && tags.length === 0 && suggestions.length > 0) {
+      hasAutoTagged.current = true;
+      const top3 = suggestions.slice(0, 3).map((s) => s.matched_tag || s.keyword);
+      // Deduplicate — multiple suggestions can resolve to the same matched_tag
+      const unique = [...new Set(top3)];
+      if (unique.length > 0) {
+        onTagsChange([...tags, ...unique]);
+      }
+    }
+  }, [suggestions, tags, onTagsChange]);
+
   const addTag = useCallback(() => {
     const tag = tagInput.trim();
-    if (tag && !tags.includes(tag)) {
+    if (tag && !tags.some((t) => t.toLowerCase() === tag.toLowerCase())) {
       onTagsChange([...tags, tag]);
       setTagInput("");
     }
@@ -131,6 +167,24 @@ export function PostSettingsPanel({
                 }
               }}
               onBlur={addTag}
+            />
+
+            {/* AI-powered tag suggestions */}
+            <TagSuggestions
+              suggestions={suggestions}
+              isLoading={suggestionsLoading}
+              onAccept={(keyword) => {
+                // Add the matched tag or the keyword itself to the tag list
+                const suggestion = suggestions.find((s) => s.keyword === keyword);
+                const tagName = suggestion?.is_existing_tag && suggestion.matched_tag
+                  ? suggestion.matched_tag
+                  : keyword;
+                if (!tags.some((t) => t.toLowerCase() === tagName.toLowerCase())) {
+                  onTagsChange([...tags, tagName]);
+                }
+                acceptSuggestion(keyword);
+              }}
+              onDismiss={dismissSuggestion}
             />
           </div>
 
