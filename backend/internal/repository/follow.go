@@ -24,7 +24,7 @@ func (r *FollowRepository) Follow(ctx context.Context, followerID, followingID s
 	defer tx.Rollback(ctx)
 
 	tag, err := tx.Exec(ctx,
-		`INSERT INTO follows (follower_id, following_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+		`INSERT INTO follows (follower_id, following_id) VALUES ($1, $2) ON CONFLICT (follower_id, following_id) DO NOTHING`,
 		followerID, followingID,
 	)
 	if err != nil {

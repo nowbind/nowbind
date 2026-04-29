@@ -40,6 +40,15 @@ export default function ProfilePage() {
   const [followingPage, setFollowingPage] = useState(1);
   const [followersTotalPages, setFollowersTotalPages] = useState(1);
   const [followingTotalPages, setFollowingTotalPages] = useState(1);
+  const [followersRefreshKey, setFollowersRefreshKey] = useState(0);
+  const [followingRefreshKey, setFollowingRefreshKey] = useState(0);
+  const [suggestedRefreshKey, setSuggestedRefreshKey] = useState(0);
+
+  const refreshFollowLists = () => {
+    setFollowersRefreshKey((key) => key + 1);
+    setFollowingRefreshKey((key) => key + 1);
+    setSuggestedRefreshKey((key) => key + 1);
+  };
 
   useEffect(() => {
     if (authLoading) return;
@@ -73,7 +82,7 @@ export default function ProfilePage() {
         setFollowersTotalPages(res.total_pages);
       })
       .catch((err) => console.error("Failed to load followers:", err));
-  }, [user, followersPage]);
+  }, [user, followersPage, followersRefreshKey]);
 
   useEffect(() => {
     if (!user) return;
@@ -87,7 +96,7 @@ export default function ProfilePage() {
         setFollowingTotalPages(res.total_pages);
       })
       .catch((err) => console.error("Failed to load following:", err));
-  }, [user, followingPage]);
+  }, [user, followingPage, followingRefreshKey]);
 
   // Fetch suggested users to follow (from explore/recent authors)
   useEffect(() => {
@@ -108,15 +117,18 @@ export default function ProfilePage() {
         // Re-fetch each author with auth to get correct is_following state
         const enriched = await Promise.all(
           authors.map((a) =>
-            api.getSilent<User>(`/users/${a.username}`)
-              .then((fresh) => (fresh ? { ...a, is_following: fresh.is_following } : a))
-              .catch(() => a)
-          )
+            api
+              .getSilent<User>(`/users/${a.username}`)
+              .then((fresh) =>
+                fresh ? { ...a, is_following: fresh.is_following } : a,
+              )
+              .catch(() => a),
+          ),
         );
         setSuggested(enriched);
       })
       .catch((err) => console.error("Failed to load suggested users:", err));
-  }, [user]);
+  }, [user, suggestedRefreshKey]);
 
   if (authLoading || loading) {
     return (
@@ -308,13 +320,28 @@ export default function ProfilePage() {
                         key={u.id}
                         user={u}
                         me={user}
-                        onFollowToggle={(nowFollowing) =>
+                        onFollowToggle={(nowFollowing) => {
+                          setFollowers((prev) =>
+                            prev.map((item) =>
+                              item.id === u.id
+                                ? { ...item, is_following: nowFollowing }
+                                : item,
+                            ),
+                          );
                           setProfile((prev) =>
                             prev
-                              ? { ...prev, following_count: prev.following_count + (nowFollowing ? 1 : -1) }
-                              : prev
-                          )
-                        }
+                              ? {
+                                  ...prev,
+                                  following_count: Math.max(
+                                    0,
+                                    prev.following_count +
+                                      (nowFollowing ? 1 : -1),
+                                  ),
+                                }
+                              : prev,
+                          );
+                          refreshFollowLists();
+                        }}
                       />
                     ))}
                   </div>
@@ -353,13 +380,28 @@ export default function ProfilePage() {
                         key={u.id}
                         user={u}
                         me={user}
-                        onFollowToggle={(nowFollowing) =>
+                        onFollowToggle={(nowFollowing) => {
+                          setFollowing((prev) =>
+                            prev.map((item) =>
+                              item.id === u.id
+                                ? { ...item, is_following: nowFollowing }
+                                : item,
+                            ),
+                          );
                           setProfile((prev) =>
                             prev
-                              ? { ...prev, following_count: prev.following_count + (nowFollowing ? 1 : -1) }
-                              : prev
-                          )
-                        }
+                              ? {
+                                  ...prev,
+                                  following_count: Math.max(
+                                    0,
+                                    prev.following_count +
+                                      (nowFollowing ? 1 : -1),
+                                  ),
+                                }
+                              : prev,
+                          );
+                          refreshFollowLists();
+                        }}
                       />
                     ))}
                   </div>
@@ -388,13 +430,29 @@ export default function ProfilePage() {
                       user={u}
                       me={user}
                       showFollow
-                      onFollowToggle={(nowFollowing) =>
+                      onFollowToggle={(nowFollowing) => {
+                        setSuggested((prev) =>
+                          prev.map((item) =>
+                            item.id === u.id
+                              ? { ...item, is_following: nowFollowing }
+                              : item,
+                          ),
+                        );
                         setProfile((prev) =>
                           prev
-                            ? { ...prev, following_count: prev.following_count + (nowFollowing ? 1 : -1) }
-                            : prev
-                        )
-                      }
+                            ? {
+                                ...prev,
+                                following_count: Math.max(
+                                  0,
+                                  prev.following_count +
+                                    (nowFollowing ? 1 : -1),
+                                ),
+                              }
+                            : prev,
+                        );
+                        // Re-fetch follower/following lists to stay in sync
+                        refreshFollowLists();
+                      }}
                     />
                   ))}
                 </div>
