@@ -16,6 +16,7 @@ import {
   AlignRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AISelector } from "./ai-selector";
 
 const fontSizes = [
   { label: "Small", value: "0.875rem" },
@@ -118,6 +119,14 @@ export function EditorBubbleMenu() {
       }}
     >
       <div className="flex items-center gap-0.5 rounded-lg border bg-background p-1 shadow-xl">
+        {/* AI Assistant */}
+        {isText && (
+          <>
+            <AISelector />
+            <div className="mx-0.5 h-5 w-px bg-border" />
+          </>
+        )}
+
         {/* --- Text formatting --- */}
         {isText && (
           <>

@@ -17,8 +17,10 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+import { aiService } from "@/lib/ai-service";
 
 type UrlPromptType = "image" | "youtube" | "bookmark" | "link" | "embed";
 
@@ -123,6 +125,7 @@ export function BlockEditor({
   const [urlPrompt, setUrlPrompt] = useState<UrlPromptType | null>(null);
   const [urlValue, setUrlValue] = useState("");
   const [wordCount, setWordCount] = useState(0);
+  const [isAILoading, setIsAILoading] = useState(false);
 
   // If initialContent arrives after the editor is already created (e.g. async
   // fetch completing after mount), push it into the editor imperatively.
@@ -258,10 +261,45 @@ export function BlockEditor({
             const uploadHandler = () => handleImageUpload();
             window.addEventListener("trigger-image-upload", uploadHandler);
 
+            // Listen for AI events
+            const aiContinueHandler = async () => {
+              const text = editor.getText();
+              setIsAILoading(true);
+              const result = await aiService.generate({
+                prompt: text.slice(-1000), // Last 1000 chars as context
+                option: "continue",
+              });
+              if (!result.error) {
+                editor.chain().focus().insertContent(result.text).run();
+              }
+              setIsAILoading(false);
+            };
+
+            const aiImproveHandler = async () => {
+              const { from, to } = editor.state.selection;
+              const selectedText = editor.state.doc.textBetween(from, to, "\n");
+              if (!selectedText) return;
+
+              setIsAILoading(true);
+              const result = await aiService.generate({
+                prompt: selectedText,
+                option: "improve",
+              });
+              if (!result.error) {
+                editor.chain().focus().insertContent(result.text).run();
+              }
+              setIsAILoading(false);
+            };
+
+            window.addEventListener("ai-continue", aiContinueHandler);
+            window.addEventListener("ai-improve", aiImproveHandler);
+
             const originalDestroy = editor.destroy.bind(editor);
             editor.destroy = () => {
               window.removeEventListener("insert-image", insertHandler);
               window.removeEventListener("trigger-image-upload", uploadHandler);
+              window.removeEventListener("ai-continue", aiContinueHandler);
+              window.removeEventListener("ai-improve", aiImproveHandler);
               editorRef.current = null;
               originalDestroy();
             };
@@ -325,6 +363,14 @@ export function BlockEditor({
             attributes: {
               class: "ProseMirror focus:outline-none",
             },
+            handleKeyDown: (view, event) => {
+              if ((event.metaKey || event.ctrlKey) && event.key === "j") {
+                event.preventDefault();
+                window.dispatchEvent(new CustomEvent("ai-continue"));
+                return true;
+              }
+              return false;
+            },
           }}
         >
           <EditorBubbleMenu />
@@ -332,8 +378,14 @@ export function BlockEditor({
         </EditorContent>
       </EditorRoot>
 
-      {/* Word count */}
-      <div className="pointer-events-none sticky bottom-4 flex justify-end pr-2 pt-2">
+      {/* Status Bar */}
+      <div className="pointer-events-none sticky bottom-4 flex justify-end gap-2 pr-2 pt-2">
+        {isAILoading && (
+          <span className="pointer-events-auto flex items-center gap-1.5 rounded-md bg-accent px-2.5 py-1 text-xs text-foreground shadow-lg backdrop-blur-md border">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Generating content...
+          </span>
+        )}
         <span className="pointer-events-auto rounded-md bg-muted/80 px-2.5 py-1 text-xs text-muted-foreground backdrop-blur-sm">
           {wordCount} {wordCount === 1 ? "word" : "words"} · {getReadingTime(wordCount)}
         </span>

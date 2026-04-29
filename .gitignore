@@ -59,3 +59,12 @@ scripts/node_modules/
 docs/post-drafts
 docs/
 AGENTS.md
+
+# Database
+pgdata/
+
+# AI Tools
+.gemini/
+.claude/
+.mcp.json
+frontend/.mcp.json

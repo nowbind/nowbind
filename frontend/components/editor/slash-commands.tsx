@@ -27,6 +27,7 @@ import {
   Github,
   Code2,
   Globe,
+  Sparkles,
 } from "lucide-react";
 
 interface SlashCommandsProps {
@@ -34,6 +35,20 @@ interface SlashCommandsProps {
 }
 
 const commandGroups = [
+  {
+    heading: "AI",
+    items: [
+      {
+        title: "Continue Writing",
+        description: "Use AI to complete your thoughts",
+        icon: <Sparkles className="h-4 w-4" />,
+        command: ({ editor, range }: { editor: Editor; range: Range }) => {
+          editor.chain().focus().deleteRange(range).run();
+          window.dispatchEvent(new CustomEvent("ai-continue"));
+        },
+      },
+    ],
+  },
   {
     heading: "Headings",
     items: [
@@ -278,7 +293,7 @@ export function SlashCommands({ onImageUpload }: SlashCommandsProps) {
                 }}
                 className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent aria-selected:bg-accent"
               >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border bg-background">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground">
                   {item.icon}
                 </div>
                 <div className="min-w-0">
