@@ -1,163 +1,227 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useRef, useState, useEffect } from "react";
 import { Play, Pause, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export function TTSPlayer({
-  contentId = "article-content",
-}: {
-  contentId?: string;
-}) {
+// Abort controller for cancelling pending requests
+let currentRequestId = 0;
+let abortController: AbortController | null = null;
+
+async function generateSpeech(text: string, requestId: number): Promise<AudioBuffer | null> {
+  // Cancel any pending request
+  if (abortController) {
+    abortController.abort();
+    abortController = null;
+  }
+
+  const controller = new AbortController();
+  abortController = controller;
+
+  const response = await fetch("/api/tts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+    signal: controller.signal,
+  });
+
+  // Check if this request was superseded
+  if (currentRequestId !== requestId) {
+    return null;
+  }
+
+  if (!response.ok) throw new Error("TTS generation failed");
+
+  const { audio } = await response.json();
+  if (!audio) throw new Error("No audio data returned");
+
+  // Decode base64 PCM 16bit 24kHz mono
+  const binary = atob(audio);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+  const pcm = new Int16Array(bytes.buffer);
+  const float32 = new Float32Array(pcm.length);
+  for (let i = 0; i < pcm.length; i++) float32[i] = pcm[i] / 32768;
+
+  const audioCtx = new AudioContext({ sampleRate: 24000 });
+  const audioBuffer = audioCtx.createBuffer(1, float32.length, 24000);
+  audioBuffer.copyToChannel(float32, 0);
+  await audioCtx.close();
+  return audioBuffer;
+}
+
+export function TTSPlayer({ contentId = "article-content" }: { contentId?: string }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [showUI, setShowUI] = useState(false);
-  const nodesRef = useRef<{ node: Node; text: string }[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const sourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const audioBufferRef = useRef<AudioBuffer | null>(null);
+  const pauseOffsetRef = useRef(0);
+  const startTimeRef = useRef(0);
+
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      window.speechSynthesis.cancel();
-      removeHighlights();
+      if (abortController) {
+        abortController.abort();
+      }
+      if (sourceRef.current) {
+        sourceRef.current.onended = null;
+        sourceRef.current.stop();
+      }
+      if (audioCtxRef.current) {
+        audioCtxRef.current.close();
+      }
     };
   }, []);
 
-  const removeHighlights = () => {
-    window.getSelection()?.removeAllRanges();
-  };
-
-  const wrapTextInSpans = () => {
+  const collectText = useCallback(() => {
     const container = document.getElementById(contentId);
     if (!container) return "";
-
-    nodesRef.current = [];
-    let rawText = "";
-
     const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
       acceptNode: (node) => {
-        // Skip text inside scripts, styles, pre, code
-        if (node.parentElement?.tagName.match(/^(SCRIPT|STYLE|PRE|CODE)$/i)) {
+        if (node.parentElement?.tagName.match(/^(SCRIPT|STYLE|PRE|CODE)$/i))
           return NodeFilter.FILTER_REJECT;
-        }
         return NodeFilter.FILTER_ACCEPT;
       },
     });
-
+    let text = "";
     let node = walker.nextNode();
     while (node) {
-      if (node.textContent && node.textContent.trim().length > 0) {
-        nodesRef.current.push({ node, text: node.textContent });
-        rawText += node.textContent;
-      }
+      if (node.textContent?.trim()) text += node.textContent;
       node = walker.nextNode();
     }
+    return text.trim();
+  }, [contentId]);
 
-    return rawText;
-  };
+  const playBuffer = useCallback((buffer: AudioBuffer, offset = 0) => {
+    const ctx = new AudioContext({ sampleRate: 24000 });
+    audioCtxRef.current = ctx;
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+    source.start(0, offset);
+    startTimeRef.current = ctx.currentTime - offset;
+    sourceRef.current = source;
 
-  const handleBoundary = (e: SpeechSynthesisEvent) => {
-    if (e.name !== "word") return;
-
-    let charCount = 0;
-    for (const item of nodesRef.current) {
-      const nodeLen = item.text.length;
-      if (charCount + nodeLen > e.charIndex) {
-        const offset = e.charIndex - charCount;
-        let endOffset = offset;
-        while (endOffset < nodeLen && /\S/.test(item.text[endOffset])) {
-          endOffset++;
-        }
-        if (endOffset > offset) {
-          try {
-            const range = document.createRange();
-            range.setStart(item.node, offset);
-            range.setEnd(item.node, endOffset);
-            const selection = window.getSelection();
-            selection?.removeAllRanges();
-            selection?.addRange(range);
-
-            // Scroll element into view smoothly if not visible
-            const element = item.node.parentElement;
-            if (element) {
-              const rect = element.getBoundingClientRect();
-              if (rect.top < 0 || rect.bottom > window.innerHeight) {
-                element.scrollIntoView({ behavior: "smooth", block: "center" });
-              }
-            }
-          } catch {
-            // Ignore range errors
-          }
-        }
-        break;
+    source.onended = () => {
+      // Only reset if not paused (natural end)
+      if (pauseOffsetRef.current === 0) {
+        setIsPlaying(false);
+        setIsPaused(false);
+        setShowUI(false);
+        audioBufferRef.current = null;
       }
-      charCount += nodeLen;
-    }
-  };
+      pauseOffsetRef.current = 0;
+    };
+  }, []);
 
-  const handlePlay = () => {
-    if (isPlaying && isPaused) {
-      window.speechSynthesis.resume();
+  const handlePlay = useCallback(async () => {
+    // Resume if paused
+    if (isPaused && audioBufferRef.current && pauseOffsetRef.current > 0) {
+      playBuffer(audioBufferRef.current, pauseOffsetRef.current);
       setIsPaused(false);
-      return;
-    }
-
-    if (isPlaying) {
-      window.speechSynthesis.pause();
-      setIsPaused(true);
-      return;
-    }
-
-    const textToSpeak = wrapTextInSpans();
-    if (!textToSpeak.trim()) return;
-
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-
-    utterance.onstart = () => {
       setIsPlaying(true);
-      setIsPaused(false);
-    };
+      return;
+    }
 
-    utterance.onend = () => {
+    // Pause if playing
+    if (isPlaying && audioCtxRef.current && sourceRef.current) {
+      const offset = audioCtxRef.current.currentTime - startTimeRef.current;
+      pauseOffsetRef.current = offset;
+      // Nullify onended before stopping to prevent it firing
+      if (sourceRef.current) sourceRef.current.onended = null;
+      sourceRef.current.stop();
+      await audioCtxRef.current.close();
+      audioCtxRef.current = null;
+      sourceRef.current = null;
+      setIsPaused(true);
       setIsPlaying(false);
-      setIsPaused(false);
-      removeHighlights();
-      setShowUI(false);
-    };
+      return;
+    }
 
-    utterance.onpause = () => setIsPaused(true);
-    utterance.onresume = () => setIsPaused(false);
-    utterance.onboundary = handleBoundary;
-    utterance.onerror = (e) => {
-      // Don't log if user cancelled explicitly
-      if (e.error !== "canceled" && e.error !== "interrupted") {
-        // Ignore noise errors
-      }
-    };
+    // Fresh start
+    const text = collectText();
+    if (!text) return;
 
-    window.speechSynthesis.speak(utterance);
+    setIsLoading(true);
+    setError(null);
     setShowUI(true);
-  };
+    pauseOffsetRef.current = 0;
 
-  const handleStop = () => {
-    window.speechSynthesis.cancel();
+    const requestId = ++currentRequestId;
+    
+    try {
+      const buffer = await generateSpeech(text, requestId);
+      if (buffer && requestId === currentRequestId) {
+        audioBufferRef.current = buffer;
+        playBuffer(buffer, 0);
+        setIsPlaying(true);
+      }
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        console.error("TTS error:", err);
+        setError("Failed to generate speech. Please try again.");
+        setShowUI(false);
+      }
+    } finally {
+      if (requestId === currentRequestId) {
+        setIsLoading(false);
+      }
+    }
+  }, [isPlaying, isPaused, collectText, playBuffer]);
+
+  const handleStop = useCallback(async () => {
+    // Cancel pending generation
+    if (abortController) {
+      abortController.abort();
+      abortController = null;
+      currentRequestId++;
+    }
+    
+    // Stop playback
+    if (sourceRef.current) {
+      sourceRef.current.onended = null;
+      sourceRef.current.stop();
+      sourceRef.current = null;
+    }
+    if (audioCtxRef.current) {
+      await audioCtxRef.current.close();
+      audioCtxRef.current = null;
+    }
     setIsPlaying(false);
     setIsPaused(false);
     setShowUI(false);
-    removeHighlights();
-  };
+    pauseOffsetRef.current = 0;
+    audioBufferRef.current = null;
+    setIsLoading(false);
+  }, []);
 
   if (!showUI) {
     return (
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        className="text-muted-foreground"
-        onClick={handlePlay}
-        title="Listen to article"
-      >
-        <Play className="h-4 w-4" />
-        <span className="sr-only">Listen to article</span>
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="text-muted-foreground"
+          onClick={handlePlay}
+          disabled={isLoading}
+          title="Listen to article"
+        >
+          {isLoading ? (
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          ) : (
+            <Play className="h-4 w-4" />
+          )}
+          <span className="sr-only">Listen to article</span>
+        </Button>
+        {error && <span className="text-xs text-destructive">{error}</span>}
+      </div>
     );
   }
 
@@ -165,28 +229,31 @@ export function TTSPlayer({
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5">
       <div className="bg-background/95 backdrop-blur shadow-lg border rounded-full px-6 py-3 flex items-center gap-4">
         <Button
-          variant="ghost"
+          variant="default"
           size="icon"
           className="rounded-full h-10 w-10 shrink-0"
           onClick={handlePlay}
+          disabled={isLoading}
         >
-          {isPlaying && !isPaused ? (
-            <Pause className="h-5 w-5" />
+          {isLoading ? (
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          ) : isPlaying && !isPaused ? (
+            <Pause className="h-4 w-4" />
           ) : (
-            <Play className="h-5 w-5 ml-1" />
+            <Play className="h-4 w-4 ml-0.5" />
           )}
         </Button>
-        <div className="flex flex-col min-w-[120px]">
-          <span className="text-sm font-medium leading-none">Audio Player</span>
-          <span className="text-xs text-muted-foreground mt-1">
-            {isPlaying && !isPaused ? "Playing..." : "Paused"}
-          </span>
-        </div>
+
+        <span className="text-sm text-muted-foreground min-w-[80px]">
+          {isLoading ? "Generating..." : isPlaying && !isPaused ? "Playing..." : "Paused"}
+        </span>
+
         <Button
           variant="ghost"
           size="icon"
-          className="rounded-full h-8 w-8 text-muted-foreground hover:text-foreground"
+          className="h-8 w-8 text-muted-foreground hover:text-destructive"
           onClick={handleStop}
+          title="Stop"
         >
           <Square className="h-4 w-4" />
         </Button>
