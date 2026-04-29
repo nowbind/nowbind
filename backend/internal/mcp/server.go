@@ -1,10 +1,12 @@
 package mcp
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 
 	"github.com/nowbind/nowbind/internal/repository"
@@ -13,6 +15,13 @@ import (
 type mcpContextKey string
 
 const rpcDetailKey mcpContextKey = "mcp_rpc_detail"
+
+var supportedProtocolVersions = []string{
+	"2025-11-25",
+	"2025-06-18",
+	"2025-03-26",
+	"2024-11-05",
+}
 
 // RPCDetail is a mutable container stored in context for MCP request detail logging.
 // The middleware places a pointer in context; the MCP handler writes to it.
@@ -45,11 +54,13 @@ func NewMCPServer(posts *repository.PostRepository, tags *repository.TagReposito
 }
 
 // JSON-RPC types
-type jsonrpcRequest struct {
+type jsonrpcMessage struct {
 	JSONRPC string          `json:"jsonrpc"`
 	ID      interface{}     `json:"id,omitempty"`
-	Method  string          `json:"method"`
+	Method  string          `json:"method,omitempty"`
 	Params  json.RawMessage `json:"params,omitempty"`
+	Result  json.RawMessage `json:"result,omitempty"`
+	Error   json.RawMessage `json:"error,omitempty"`
 }
 
 type jsonrpcResponse struct {
@@ -65,60 +76,68 @@ type rpcError struct {
 }
 
 func (s *MCPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.Header().Set("Allow", "POST")
+	switch r.Method {
+	case http.MethodGet:
+		s.handleSSEGet(w)
+	case http.MethodPost:
+		s.handlePost(w, r)
+	default:
+		w.Header().Set("Allow", "GET, POST")
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func (s *MCPServer) handleSSEGet(w http.ResponseWriter) {
+	// This server intentionally runs in JSON response mode only.
+	w.Header().Set("Allow", "POST")
+	http.Error(w, "SSE stream not supported on this endpoint", http.StatusMethodNotAllowed)
+}
+
+func (s *MCPServer) handlePost(w http.ResponseWriter, r *http.Request) {
+	if err := validateProtocolVersion(r.Header.Get("MCP-Protocol-Version")); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	var req jsonrpcRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeRPCError(w, nil, -32700, "Parse error")
+	var msg jsonrpcMessage
+	if err := json.NewDecoder(r.Body).Decode(&msg); err != nil {
+		writeRPCErrorWithStatus(w, nil, http.StatusBadRequest, -32700, "Parse error")
 		return
 	}
-
-	if req.JSONRPC != "2.0" {
-		writeRPCError(w, req.ID, -32600, "Invalid Request")
+	if msg.JSONRPC != "2.0" {
+		writeRPCErrorWithStatus(w, msg.ID, http.StatusBadRequest, -32600, "Invalid Request")
+		return
+	}
+	if isResponseMessage(msg) {
+		writeNotificationAccepted(w)
+		return
+	}
+	if msg.Method == "" {
+		writeRPCErrorWithStatus(w, msg.ID, http.StatusBadRequest, -32600, "Invalid Request")
 		return
 	}
 
 	ctx := r.Context()
-	var result interface{}
-	var rpcErr *rpcError
+	detail := msg.Method
+	result, rpcErr := s.dispatch(ctx, msg, &detail)
+	writeRPCDetail(ctx, detail)
 
-	// Build a detail string for logging (e.g. "tools/call:search_posts")
-	detail := req.Method
-
-	switch req.Method {
-	case "initialize":
-		result = s.handleInitialize()
-	case "resources/list":
-		result = s.handleResourcesList()
-	case "resources/read":
-		result, rpcErr = s.handleResourcesRead(ctx, req.Params)
-	case "tools/list":
-		result = s.handleToolsList()
-	case "tools/call":
-		result, rpcErr = s.handleToolsCall(ctx, req.Params)
-		// Extract tool name for logging
-		var toolReq struct {
-			Name string `json:"name"`
+	if isNotification(msg) {
+		if rpcErr != nil {
+			writeRPCErrorWithStatus(w, nil, http.StatusBadRequest, rpcErr.Code, rpcErr.Message)
+			return
 		}
-		if json.Unmarshal(req.Params, &toolReq) == nil && toolReq.Name != "" {
-			detail = "tools/call:" + toolReq.Name
-		}
-	default:
-		rpcErr = &rpcError{Code: -32601, Message: fmt.Sprintf("Method not found: %s", req.Method)}
+		writeNotificationAccepted(w)
+		return
 	}
 
-	// Write detail to context-stored RPCDetail so middleware can log it
-	if rd, ok := ctx.Value(rpcDetailKey).(*RPCDetail); ok {
-		rd.Value = detail
+	if version := responseProtocolVersion(msg.Method, msg.Params, r.Header.Get("MCP-Protocol-Version")); version != "" {
+		w.Header().Set("MCP-Protocol-Version", version)
 	}
 
 	resp := jsonrpcResponse{
 		JSONRPC: "2.0",
-		ID:      req.ID,
+		ID:      msg.ID,
 	}
 	if rpcErr != nil {
 		resp.Error = rpcErr
@@ -130,28 +149,78 @@ func (s *MCPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
-func (s *MCPServer) handleInitialize() interface{} {
+func (s *MCPServer) dispatch(ctx context.Context, msg jsonrpcMessage, detail *string) (interface{}, *rpcError) {
+	switch msg.Method {
+	case "initialize":
+		return s.handleInitialize(msg.Params)
+	case "ping":
+		return map[string]interface{}{}, nil
+	case "resources/list":
+		return s.handleResourcesList(), nil
+	case "resources/templates/list":
+		return s.handleResourceTemplatesList(), nil
+	case "resources/read":
+		return s.handleResourcesRead(ctx, msg.Params)
+	case "tools/list":
+		return s.handleToolsList(), nil
+	case "tools/call":
+		result, rpcErr := s.handleToolsCall(ctx, msg.Params)
+		var req struct {
+			Name string `json:"name"`
+		}
+		if json.Unmarshal(msg.Params, &req) == nil && req.Name != "" {
+			*detail = "tools/call:" + req.Name
+		}
+		return result, rpcErr
+	default:
+		if strings.HasPrefix(msg.Method, "notifications/") {
+			return nil, nil
+		}
+		return nil, &rpcError{Code: -32601, Message: fmt.Sprintf("Method not found: %s", msg.Method)}
+	}
+}
+
+func (s *MCPServer) handleInitialize(params json.RawMessage) (interface{}, *rpcError) {
+	var req struct {
+		ProtocolVersion string `json:"protocolVersion"`
+	}
+	if len(params) > 0 {
+		if err := json.Unmarshal(params, &req); err != nil {
+			return nil, &rpcError{Code: -32602, Message: "Invalid params"}
+		}
+	}
+
 	return map[string]interface{}{
-		"protocolVersion": "2024-11-05",
+		"protocolVersion": negotiateProtocolVersion(req.ProtocolVersion),
 		"capabilities": map[string]interface{}{
 			"resources": map[string]bool{"listChanged": false},
-			"tools":     map[string]interface{}{},
+			"tools":     map[string]bool{"listChanged": false},
 		},
 		"serverInfo": map[string]string{
 			"name":    "nowbind",
 			"version": "1.0.0",
 		},
-	}
+		"instructions": "Use list_posts or search_posts to discover content, get_post for full articles, and the author/tag tools for scoped navigation.",
+	}, nil
 }
 
 func writeRPCError(w http.ResponseWriter, id interface{}, code int, message string) {
+	writeRPCErrorWithStatus(w, id, http.StatusOK, code, message)
+}
+
+func writeRPCErrorWithStatus(w http.ResponseWriter, id interface{}, status int, code int, message string) {
 	resp := jsonrpcResponse{
 		JSONRPC: "2.0",
 		ID:      id,
 		Error:   &rpcError{Code: code, Message: message},
 	}
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(resp)
+}
+
+func writeNotificationAccepted(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusAccepted)
 }
 
 func init() {
@@ -161,6 +230,59 @@ func init() {
 func handleError(err error) *rpcError {
 	log.Printf("mcp error: %v", err)
 	return &rpcError{Code: -32603, Message: "internal server error"}
+}
+
+func validateProtocolVersion(version string) error {
+	if version == "" || isSupportedProtocolVersion(version) {
+		return nil
+	}
+	return fmt.Errorf("unsupported MCP protocol version: %s", version)
+}
+
+func negotiateProtocolVersion(requested string) string {
+	if isSupportedProtocolVersion(requested) {
+		return requested
+	}
+	return supportedProtocolVersions[0]
+}
+
+func isSupportedProtocolVersion(version string) bool {
+	for _, supported := range supportedProtocolVersions {
+		if version == supported {
+			return true
+		}
+	}
+	return false
+}
+
+func responseProtocolVersion(method string, params json.RawMessage, headerVersion string) string {
+	if method == "initialize" {
+		var req struct {
+			ProtocolVersion string `json:"protocolVersion"`
+		}
+		if len(params) > 0 && json.Unmarshal(params, &req) == nil {
+			return negotiateProtocolVersion(req.ProtocolVersion)
+		}
+		return supportedProtocolVersions[0]
+	}
+	if headerVersion != "" {
+		return headerVersion
+	}
+	return supportedProtocolVersions[0]
+}
+
+func writeRPCDetail(ctx context.Context, detail string) {
+	if rd, ok := ctx.Value(rpcDetailKey).(*RPCDetail); ok {
+		rd.Value = detail
+	}
+}
+
+func isNotification(msg jsonrpcMessage) bool {
+	return msg.ID == nil
+}
+
+func isResponseMessage(msg jsonrpcMessage) bool {
+	return msg.Method == "" && msg.ID != nil && (len(msg.Result) > 0 || len(msg.Error) > 0)
 }
 
 // ensure MCPServer implements http.Handler

@@ -271,16 +271,23 @@ Full markdown content...`}
 {
   "mcpServers": {
     "nowbind": {
-      "url": "https://nowbind.com/mcp"
+      "url": "https://nowbind.com/mcp",
+      "headers": {
+        "Authorization": "Bearer nb_your_api_key"
+      }
     }
   }
 }
 
 // Available tools:
-// - search_posts(query)
+// - search_posts(query, page?, limit?)
 // - get_post(slug)
-// - list_posts(tag, page)
-// - get_author(username)`}
+// - list_posts(tag?, page?, limit?)
+// - get_author(username)
+// - search_authors(query, page?, limit?)
+// - list_author_posts(username, page?, limit?)
+// - list_tags(page?, limit?)
+// - get_tag_posts(slug, page?, limit?)`}
                       </pre>
                     </div>
                   </div>

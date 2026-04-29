@@ -206,7 +206,7 @@ NowBind exposes an [MCP](https://modelcontextprotocol.io) server for AI assistan
 {
   "mcpServers": {
     "nowbind": {
-      "url": "https://nowbind.com/mcp/",
+      "url": "https://nowbind.com/mcp",
       "headers": {
         "Authorization": "Bearer nb_your_api_key"
       }
@@ -215,9 +215,11 @@ NowBind exposes an [MCP](https://modelcontextprotocol.io) server for AI assistan
 }
 ```
 
-**Resources:** `nowbind://posts`, `nowbind://posts/{slug}`, `nowbind://authors`, `nowbind://tags`, `nowbind://feed`
+**Resources:** `nowbind://posts`, `nowbind://authors`, `nowbind://tags`, `nowbind://feed`
 
-**Tools:** `search_posts`, `get_post`, `list_posts`, `get_author`
+**Resource Templates:** `nowbind://posts/{slug}`, `nowbind://authors/{username}`, `nowbind://tags/{slug}`
+
+**Tools:** `search_posts`, `get_post`, `list_posts`, `get_author`, `search_authors`, `list_author_posts`, `list_tags`, `get_tag_posts`
 
 ## API Endpoints
 
