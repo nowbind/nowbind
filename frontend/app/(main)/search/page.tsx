@@ -43,6 +43,84 @@ function buildSuggestedAuthors(posts: Post[], currentUserID?: string): User[] {
   return authors;
 }
 
+// ---------- Discovery Skeleton ----------
+// Mirrors: Trending (6 numbered cards in 2-col grid) +
+//          Follow Authors (4 author rows in 2-col grid) +
+//          Topics (pill badges)
+
+function DiscoverySkeleton() {
+  return (
+    <div className="space-y-10">
+      {/* Trending section */}
+      <section>
+        {/* Section header: icon + "TRENDING" label + "Explore →" link */}
+        <div className="mb-4 flex items-center justify-between">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-4 w-20" />
+        </div>
+        {/* 6 trending cards in 2-col grid */}
+        <div className="grid gap-3 sm:grid-cols-2">
+          {Array.from({ length: 6 }, (_, i) => (
+            <div key={i} className="rounded-lg border p-4 space-y-2 min-h-[100px]">
+              {/* "#1" number badge */}
+              <Skeleton className="h-3 w-6" />
+              {/* Post title (2 lines) */}
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              {/* Author · read time */}
+              <Skeleton className="h-3 w-2/3" />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Follow Authors section */}
+      <section>
+        {/* Section header */}
+        <Skeleton className="mb-4 h-4 w-32" />
+        {/* 6 author cards in 2-col grid */}
+        <div className="grid gap-3 sm:grid-cols-2">
+          {Array.from({ length: 6 }, (_, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between gap-3 rounded-lg border p-3 min-h-[64px]"
+            >
+              {/* Avatar + name + handle */}
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+                <div className="space-y-1.5 min-w-0">
+                  <Skeleton className="h-3.5 w-24" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+              </div>
+              {/* Follow / Sign in button */}
+              <Skeleton className="h-8 w-20 rounded-md shrink-0" />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Topics section */}
+      <section>
+        {/* Section header */}
+        <Skeleton className="mb-4 h-4 w-20" />
+        {/* Topic pills */}
+        <div className="flex flex-wrap gap-2">
+          {[72, 88, 56, 80, 64, 96, 72, 60, 84, 68, 76, 60, 88, 72].map(
+            (w, i) => (
+              <Skeleton
+                key={i}
+                className="h-7 rounded-full"
+                style={{ width: `${w}px` }}
+              />
+            )
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function SearchContent() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
@@ -68,8 +146,6 @@ function SearchContent() {
   const prevURLQueryRef = useRef(queryParam);
 
   useEffect(() => {
-    // Only sync from URL when query param changed externally (e.g. browser back/forward),
-    // not while the user is actively typing.
     if (queryParam !== prevURLQueryRef.current) {
       setQuery(queryParam);
       setDebouncedQuery(queryParam);
@@ -372,24 +448,7 @@ function SearchContent() {
       {showDiscovery && (
         <div className="space-y-10">
           {discoverLoading ? (
-            <>
-              <section>
-                <Skeleton className="mb-3 h-4 w-24" />
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {[1, 2, 3, 4].map((i) => (
-                    <Skeleton key={i} className="h-24 rounded-lg" />
-                  ))}
-                </div>
-              </section>
-              <section>
-                <Skeleton className="mb-3 h-4 w-32" />
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {[1, 2, 3, 4].map((i) => (
-                    <Skeleton key={i} className="h-20 rounded-lg" />
-                  ))}
-                </div>
-              </section>
-            </>
+            <DiscoverySkeleton />
           ) : (
             <>
               {trendingPosts.length > 0 && (
@@ -535,6 +594,7 @@ export default function SearchPage() {
             <div className="mx-auto max-w-3xl px-4 py-8">
               <Skeleton className="mb-6 h-8 w-32" />
               <Skeleton className="mb-8 h-10 w-full" />
+              <DiscoverySkeleton />
             </div>
           }
         >
