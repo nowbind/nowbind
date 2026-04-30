@@ -240,3 +240,28 @@ type ReferrerStat struct {
 	Referrer string `json:"referrer"`
 	Count    int    `json:"count"`
 }
+
+// Passkey models
+
+type PasskeyCredential struct {
+	ID           string    `json:"id"`
+	UserID       string    `json:"user_id"`
+	CredentialID []byte    `json:"-"`
+	PublicKey    []byte    `json:"-"`
+	AAGUID       []byte    `json:"-"`
+	SignCount    int       `json:"sign_count"`
+	Name         string    `json:"name"`
+	Transports   []string  `json:"transports,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
+	LastUsedAt   *time.Time `json:"last_used_at,omitempty"`
+}
+
+type PasskeyChallenge struct {
+	ID        string
+	UserID    *string
+	Email     *string
+	Challenge []byte
+	Type      string
+	CreatedAt time.Time
+	ExpiresAt time.Time
+}

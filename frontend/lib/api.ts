@@ -177,3 +177,29 @@ export class ApiError extends Error {
 }
 
 export const api = new ApiClient(API_URL);
+
+// Passkey API methods
+export const passkeyApi = {
+  beginRegistration: (name: string) =>
+    api.post<PublicKeyCredentialCreationOptions>("/auth/passkey/register/begin", { name }),
+  
+  finishRegistration: (name: string, credential: unknown) =>
+    api.post<{ message: string }>("/auth/passkey/register/finish", { name, credential }),
+  
+  beginLogin: (email?: string) =>
+    api.post<PublicKeyCredentialRequestOptions>("/auth/passkey/login/begin", { email }),
+  
+  finishLogin: (assertion: unknown) =>
+    api.post<unknown>("/auth/passkey/login/finish", { assertion }),
+  
+  listCredentials: () =>
+    api.get<Array<{
+      id: string;
+      name: string;
+      created_at: string;
+      last_used_at?: string;
+    }>>("/auth/passkey/credentials"),
+  
+  deleteCredential: (id: string) =>
+    api.delete<void>(`/auth/passkey/credentials/${id}`),
+};
