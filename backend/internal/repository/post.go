@@ -385,11 +385,11 @@ func (r *PostRepository) Search(ctx context.Context, query string, page, perPage
 		        p.content_json, p.content_format,
 		        u.id, u.email, u.username, u.display_name, u.avatar_url,
 		        (
-		          (ts_rank_cd(p.search_vector, plainto_tsquery('english', $1)) * 1.0) +
-		          (similarity(p.title, $1) * 0.5) +
-		          (ln(p.like_count + 1.0) * 0.1) +
-		          (ln(p.comment_count + 1.0) * 0.1)
-		        ) AS rank
+		          (ts_rank_cd(p.search_vector, plainto_tsquery('english', $1)) * 1.0::double precision) +
+		          (similarity(p.title, $1) * 0.5::double precision) +
+		          (ln(p.like_count + 1.0::double precision) * 0.1::double precision) +
+		          (ln(p.comment_count + 1.0::double precision) * 0.1::double precision)
+		        )::double precision AS rank
 		 FROM posts p JOIN users u ON u.id = p.author_id
 		 WHERE p.status = 'published' AND (p.search_vector @@ plainto_tsquery('english', $1) OR p.title % $1)
 		 ORDER BY rank DESC
