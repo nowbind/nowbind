@@ -1,98 +1,110 @@
-# NowBind API & MCP Testing Guide
+﻿# NowBind API Testing Guide
 
 ## Setup
 
 **Base URLs:**
 - Local: `http://localhost:8080`
-- Production: `https://api.nowbind.com` (your backend URL)
+- Production: `https://nowbindb.niheshr.com` (or your backend URL)
 
-**API Key:** Replace `nb_xxxxx` with your actual key (starts with `nb_`).
+**API Key:** Replace `YOUR_API_KEY` below with your actual key (starts with `nb_`).
 
+You can pass the API key in two ways:
 ```bash
-export API_KEY="nb_your_key_here"
-export BASE="http://localhost:8080"
-```
+# Option 1: Authorization header (recommended)
+-H "Authorization: Bearer nb_xxxxx"
 
-Pass the API key via header or query param:
-```bash
-# Header (recommended)
--H "Authorization: Bearer $API_KEY"
-
-# Query param
-?api_key=$API_KEY
+# Option 2: Query parameter
+?api_key=nb_xxxxx
 ```
 
 ---
 
 ## Agent API Endpoints
 
-All under `/api/v1/agent/` — require API key.
+All endpoints under `/api/v1/agent/` require an API key.
 
-### List All Published Posts
-
-```bash
-curl -s "$BASE/api/v1/agent/posts" \
-  -H "Authorization: Bearer $API_KEY" | jq
-```
-
-### Get a Single Post (Full Markdown)
+### 1. List All Published Posts
 
 ```bash
-curl -s "$BASE/api/v1/agent/posts/your-post-slug" \
-  -H "Authorization: Bearer $API_KEY"
+curl -s http://localhost:8080/api/v1/agent/posts \
+  -H "Authorization: Bearer YOUR_API_KEY" | jq
 ```
 
-Returns raw markdown with title, author, keywords, and full content.
+Returns an array of posts with: `slug`, `title`, `subtitle`, `author`, `excerpt`, `reading_time`, `published_at`, `tags`, `keywords`, `url`, `content_url`.
 
-### Search Posts
+### 2. Get a Single Post (Full Markdown)
 
 ```bash
-curl -s "$BASE/api/v1/agent/search?q=nginx" \
-  -H "Authorization: Bearer $API_KEY" | jq
+curl -s http://localhost:8080/api/v1/agent/posts/YOUR_POST_SLUG \
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-### List Authors
+Returns the full post content as **markdown** (not JSON). Includes title, subtitle, author, reading time, keywords, and the full content body.
+
+### 3. Search Posts
 
 ```bash
-curl -s "$BASE/api/v1/agent/authors" \
-  -H "Authorization: Bearer $API_KEY" | jq
+curl -s "http://localhost:8080/api/v1/agent/search?q=YOUR_QUERY" \
+  -H "Authorization: Bearer YOUR_API_KEY" | jq
 ```
 
-### List Tags
+Returns: `{ "query": "...", "total": N, "results": [{ "slug", "title", "excerpt", "url" }] }`
+
+### 4. List Authors
 
 ```bash
-curl -s "$BASE/api/v1/agent/tags" \
-  -H "Authorization: Bearer $API_KEY" | jq
+curl -s http://localhost:8080/api/v1/agent/authors \
+  -H "Authorization: Bearer YOUR_API_KEY" | jq
 ```
+
+Returns an array of authors with: `username`, `display_name`, `bio`, `url`.
+
+### 5. List Tags
+
+```bash
+curl -s http://localhost:8080/api/v1/agent/tags \
+  -H "Authorization: Bearer YOUR_API_KEY" | jq
+```
+
+Returns all tags with: `id`, `name`, `slug`, `post_count`.
 
 ---
 
 ## MCP Server
 
-The MCP server is at **`/mcp/`** (NOT `/api/v1/mcp`). Uses Streamable HTTP transport with JSON-RPC 2.0. Requires API key.
+The MCP (Model Context Protocol) server is available at `/mcp/` and uses **Streamable HTTP** transport with JSON-RPC 2.0. It also requires an API key.
 
 ### Test MCP with curl
 
-**Initialize:**
+#### Initialize
 
 ```bash
-curl -s -X POST "$BASE/mcp/" \
-  -H "Authorization: Bearer $API_KEY" \
+curl -s -X POST http://localhost:8080/mcp/ \
+  -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' | jq
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {}
+  }' | jq
 ```
 
-If you see `protocolVersion: "2024-11-05"` in the response, MCP is working.
-
-**List Tools:**
+#### List Available Tools
 
 ```bash
-curl -s -X POST "$BASE/mcp/" \
-  -H "Authorization: Bearer $API_KEY" \
+curl -s -X POST http://localhost:8080/mcp/ \
+  -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' | jq
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "tools/list",
+    "params": {}
+  }' | jq
 ```
 
+Available tools:
 | Tool | Description |
 |------|-------------|
 | `search_posts` | Search posts by keyword |
@@ -100,153 +112,156 @@ curl -s -X POST "$BASE/mcp/" \
 | `list_posts` | List recent posts, optionally filter by tag |
 | `get_author` | Get author info by username |
 
-**Call Tool — Search Posts:**
+#### Call a Tool ΓÇö Search Posts
 
 ```bash
-curl -s -X POST "$BASE/mcp/" \
-  -H "Authorization: Bearer $API_KEY" \
+curl -s -X POST http://localhost:8080/mcp/ \
+  -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"search_posts","arguments":{"query":"nginx"}}}' | jq
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "tools/call",
+    "params": {
+      "name": "search_posts",
+      "arguments": { "query": "javascript" }
+    }
+  }' | jq
 ```
 
-**Call Tool — Get Post:**
+#### Call a Tool ΓÇö Get Post
 
 ```bash
-curl -s -X POST "$BASE/mcp/" \
-  -H "Authorization: Bearer $API_KEY" \
+curl -s -X POST http://localhost:8080/mcp/ \
+  -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"get_post","arguments":{"slug":"your-post-slug"}}}' | jq
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 4,
+    "method": "tools/call",
+    "params": {
+      "name": "get_post",
+      "arguments": { "slug": "your-post-slug" }
+    }
+  }' | jq
 ```
 
-**Call Tool — List Posts:**
+#### Call a Tool ΓÇö List Posts (with optional tag filter)
 
 ```bash
-curl -s -X POST "$BASE/mcp/" \
-  -H "Authorization: Bearer $API_KEY" \
+curl -s -X POST http://localhost:8080/mcp/ \
+  -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"list_posts","arguments":{"limit":5}}}' | jq
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 5,
+    "method": "tools/call",
+    "params": {
+      "name": "list_posts",
+      "arguments": { "limit": 5 }
+    }
+  }' | jq
 ```
 
 With tag filter:
 
 ```bash
-curl -s -X POST "$BASE/mcp/" \
-  -H "Authorization: Bearer $API_KEY" \
+curl -s -X POST http://localhost:8080/mcp/ \
+  -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"list_posts","arguments":{"tag":"nginx","limit":10}}}' | jq
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 5,
+    "method": "tools/call",
+    "params": {
+      "name": "list_posts",
+      "arguments": { "tag": "javascript", "limit": 10 }
+    }
+  }' | jq
 ```
 
-**Call Tool — Get Author:**
+#### Call a Tool ΓÇö Get Author
 
 ```bash
-curl -s -X POST "$BASE/mcp/" \
-  -H "Authorization: Bearer $API_KEY" \
+curl -s -X POST http://localhost:8080/mcp/ \
+  -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"get_author","arguments":{"username":"nihesh"}}}' | jq
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 6,
+    "method": "tools/call",
+    "params": {
+      "name": "get_author",
+      "arguments": { "username": "nihesh" }
+    }
+  }' | jq
 ```
 
-**List Resources:**
+#### List Resources
 
 ```bash
-curl -s -X POST "$BASE/mcp/" \
-  -H "Authorization: Bearer $API_KEY" \
+curl -s -X POST http://localhost:8080/mcp/ \
+  -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":7,"method":"resources/list","params":{}}' | jq
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 7,
+    "method": "resources/list",
+    "params": {}
+  }' | jq
 ```
 
-| URI | Type | Description |
-|-----|------|-------------|
-| `nowbind://posts` | JSON | All published posts |
-| `nowbind://posts/{slug}` | Markdown | Single post content |
-| `nowbind://authors` | JSON | All authors |
-| `nowbind://tags` | JSON | All tags |
-| `nowbind://feed` | Text | Recent posts feed |
+Available resources:
+| URI | Description |
+|-----|-------------|
+| `nowbind://posts` | All published posts (JSON) |
+| `nowbind://posts/{slug}` | Single post content (Markdown) |
+| `nowbind://authors` | All authors (JSON) |
+| `nowbind://tags` | All tags (JSON) |
+| `nowbind://feed` | Recent posts feed (text) |
 
-**Read a Resource:**
+#### Read a Resource
 
 ```bash
-curl -s -X POST "$BASE/mcp/" \
-  -H "Authorization: Bearer $API_KEY" \
+curl -s -X POST http://localhost:8080/mcp/ \
+  -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":8,"method":"resources/read","params":{"uri":"nowbind://feed"}}' | jq
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 8,
+    "method": "resources/read",
+    "params": { "uri": "nowbind://posts" }
+  }' | jq
 ```
-
----
-
-## Connecting NowBind MCP to AI Agents
-
-NowBind's MCP server works with all major AI coding tools. Replace `YOUR_API_KEY` with your actual `nb_` key.
-
-### Claude Code (CLI)
-
-**Add via command:**
 
 ```bash
-claude mcp add --transport http nowbind https://nowbind.com/mcp/ \
-  --header "Authorization: Bearer YOUR_API_KEY"
+curl -s -X POST http://localhost:8080/mcp/ \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 9,
+    "method": "resources/read",
+    "params": { "uri": "nowbind://feed" }
+  }' | jq
 ```
 
-Or with JSON:
+---
 
-```bash
-claude mcp add-json nowbind '{"type":"http","url":"https://nowbind.com/mcp/","headers":{"Authorization":"Bearer YOUR_API_KEY"}}'
-```
+## Connecting NowBind MCP to Claude Code
 
-**Project-scoped config (`.mcp.json` in project root):**
+### Configuration
+
+Add the following to your Claude Code MCP settings file.
+
+**Location:** `~/.claude/claude_desktop_config.json` (or the settings file for your Claude Code version)
 
 ```json
 {
   "mcpServers": {
     "nowbind": {
-      "type": "http",
-      "url": "https://nowbind.com/mcp/",
-      "headers": {
-        "Authorization": "Bearer ${NOWBIND_API_KEY}"
-      }
-    }
-  }
-}
-```
-
-Set the env var: `export NOWBIND_API_KEY="nb_xxxxx"`
-
----
-
-### Claude Desktop
-
-Claude Desktop does not support remote HTTP servers in the config file directly. Use the `mcp-remote` bridge:
-
-**Config:** `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
-
-```json
-{
-  "mcpServers": {
-    "nowbind": {
-      "command": "npx",
-      "args": [
-        "-y", "mcp-remote",
-        "https://nowbind.com/mcp/",
-        "--header", "Authorization: Bearer YOUR_API_KEY"
-      ]
-    }
-  }
-}
-```
-
-Or add via **Settings > Connectors** in the Claude Desktop UI (Pro/Max/Team plans).
-
----
-
-### GitHub Copilot (VS Code)
-
-**Config:** `.vscode/mcp.json` in your project root:
-
-```json
-{
-  "servers": {
-    "nowbind": {
-      "type": "http",
-      "url": "https://nowbind.com/mcp/",
+      "type": "streamablehttp",
+      "url": "http://localhost:8080/mcp/",
       "headers": {
         "Authorization": "Bearer YOUR_API_KEY"
       }
@@ -255,55 +270,14 @@ Or add via **Settings > Connectors** in the Claude Desktop UI (Pro/Max/Team plan
 }
 ```
 
-Or in VS Code `settings.json`:
-
-```json
-{
-  "mcp": {
-    "servers": {
-      "nowbind": {
-        "type": "http",
-        "url": "https://nowbind.com/mcp/",
-        "headers": {
-          "Authorization": "Bearer YOUR_API_KEY"
-        }
-      }
-    }
-  }
-}
-```
-
----
-
-### OpenAI Codex CLI
-
-**Config:** `~/.codex/config.toml`
-
-```toml
-[mcp_servers.nowbind]
-url = "https://nowbind.com/mcp/"
-http_headers = { "Authorization" = "Bearer YOUR_API_KEY" }
-```
-
-Or use env var:
-
-```toml
-[mcp_servers.nowbind]
-url = "https://nowbind.com/mcp/"
-bearer_token_env_var = "NOWBIND_API_KEY"
-```
-
----
-
-### Cursor
-
-**Config:** `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (project):
+For **production**:
 
 ```json
 {
   "mcpServers": {
     "nowbind": {
-      "url": "https://nowbind.com/mcp/",
+      "type": "streamablehttp",
+      "url": "https://nowbindb.niheshr.com/mcp/",
       "headers": {
         "Authorization": "Bearer YOUR_API_KEY"
       }
@@ -312,149 +286,78 @@ bearer_token_env_var = "NOWBIND_API_KEY"
 }
 ```
 
----
+### Steps
 
-### Windsurf
+1. **Get an API key** ΓÇö Create one from the NowBind frontend (Settings > API Keys) or via:
+   ```bash
+   # Login first, then:
+   curl -s -X POST http://localhost:8080/api/v1/api-keys \
+     -H "Cookie: access_token=YOUR_ACCESS_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"scopes": ["read"]}' | jq
+   ```
+   Save the `key` value (shown only once, starts with `nb_`).
 
-**Config:** `~/.codeium/windsurf/mcp_config.json`
+2. **Add MCP config** ΓÇö Edit `~/.claude/claude_desktop_config.json` with the config above.
 
-```json
-{
-  "mcpServers": {
-    "nowbind": {
-      "serverUrl": "https://nowbind.com/mcp/",
-      "headers": {
-        "Authorization": "Bearer YOUR_API_KEY"
-      }
-    }
-  }
-}
-```
+3. **Restart Claude Code** ΓÇö The MCP server will be detected on next launch.
 
-Note: Windsurf uses `serverUrl` instead of `url`.
+4. **Verify** ΓÇö In Claude Code, you should see NowBind tools available:
+   - `search_posts` ΓÇö Search blog posts
+   - `get_post` ΓÇö Read full post content
+   - `list_posts` ΓÇö Browse recent posts
+   - `get_author` ΓÇö Look up author profiles
 
----
+5. **Test it** ΓÇö Ask Claude something like:
+   - "What posts are on NowBind?"
+   - "Search NowBind for posts about JavaScript"
+   - "Read the post about [topic]"
 
-### Continue.dev
+### Troubleshooting
 
-**Config:** `~/.continue/config.yaml`
-
-```yaml
-mcpServers:
-  - name: nowbind
-    type: streamable-http
-    url: "https://nowbind.com/mcp/"
-    requestOptions:
-      headers:
-        Authorization: "Bearer YOUR_API_KEY"
-```
-
-Note: Headers go under `requestOptions.headers`.
-
----
-
-### Cline (VS Code Extension)
-
-**Config:** Accessible via Cline MCP Servers UI, or edit directly:
-
-macOS: `~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`
-
-```json
-{
-  "mcpServers": {
-    "nowbind": {
-      "url": "https://nowbind.com/mcp/",
-      "type": "streamableHttp",
-      "headers": {
-        "Authorization": "Bearer YOUR_API_KEY"
-      }
-    }
-  }
-}
-```
-
-Note: Cline uses camelCase `streamableHttp`.
-
----
-
-### OpenCode
-
-**Config:** `opencode.json` in project root:
-
-```json
-{
-  "mcp": {
-    "nowbind": {
-      "type": "remote",
-      "url": "https://nowbind.com/mcp/",
-      "headers": {
-        "Authorization": "Bearer YOUR_API_KEY"
-      }
-    }
-  }
-}
-```
-
-Note: OpenCode uses `"type": "remote"` and the key is `mcp` not `mcpServers`.
-
----
-
-## Quick Reference
-
-| Tool | Config Key | Type Value | URL Field | Headers Field |
-|------|-----------|------------|-----------|---------------|
-| Claude Code | `mcpServers` | `"http"` | `url` | `headers` |
-| Claude Desktop | N/A | Use `mcp-remote` bridge | N/A | N/A |
-| GitHub Copilot | `servers` | `"http"` | `url` | `headers` |
-| Codex CLI | `mcp_servers` | implicit | `url` | `http_headers` |
-| Cursor | `mcpServers` | auto | `url` | `headers` |
-| Windsurf | `mcpServers` | auto | `serverUrl` | `headers` |
-| Continue.dev | `mcpServers` | `"streamable-http"` | `url` | `requestOptions.headers` |
-| Cline | `mcpServers` | `"streamableHttp"` | `url` | `headers` |
-| OpenCode | `mcp` | `"remote"` | `url` | `headers` |
+- **401 Unauthorized** ΓÇö Check your API key is correct and not expired
+- **Connection refused** ΓÇö Make sure the Go backend is running (`make dev` or `go run cmd/server/main.go`)
+- **No tools showing** ΓÇö Restart Claude Code after updating the config
+- **Check MCP works** ΓÇö Run the `initialize` curl command above. You should get back server info with `protocolVersion: "2024-11-05"`.
 
 ---
 
 ## Quick Test Script
+
+Run all endpoints in one go:
 
 ```bash
 #!/bin/bash
 API_KEY="YOUR_API_KEY"
 BASE="http://localhost:8080"
 
-echo "=== Agent: List Posts ==="
+echo "=== List Posts ==="
 curl -s "$BASE/api/v1/agent/posts" -H "Authorization: Bearer $API_KEY" | jq '.[0]'
 
-echo -e "\n=== Agent: Search ==="
-curl -s "$BASE/api/v1/agent/search?q=linux" -H "Authorization: Bearer $API_KEY" | jq
+echo -e "\n=== Search ==="
+curl -s "$BASE/api/v1/agent/search?q=test" -H "Authorization: Bearer $API_KEY" | jq
 
-echo -e "\n=== Agent: Authors ==="
+echo -e "\n=== Authors ==="
 curl -s "$BASE/api/v1/agent/authors" -H "Authorization: Bearer $API_KEY" | jq
 
-echo -e "\n=== Agent: Tags ==="
+echo -e "\n=== Tags ==="
 curl -s "$BASE/api/v1/agent/tags" -H "Authorization: Bearer $API_KEY" | jq
 
-echo -e "\n=== MCP: Initialize ==="
+echo -e "\n=== MCP Initialize ==="
 curl -s -X POST "$BASE/mcp/" \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' | jq
 
-echo -e "\n=== MCP: Tools List ==="
+echo -e "\n=== MCP Tools List ==="
 curl -s -X POST "$BASE/mcp/" \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' | jq
 
-echo -e "\n=== MCP: List Posts Tool ==="
+echo -e "\n=== MCP List Posts Tool ==="
 curl -s -X POST "$BASE/mcp/" \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"list_posts","arguments":{"limit":3}}}' | jq
-
-echo -e "\n=== MCP: Feed Resource ==="
-curl -s -X POST "$BASE/mcp/" \
-  -H "Authorization: Bearer $API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":4,"method":"resources/read","params":{"uri":"nowbind://feed"}}' | jq
 ```

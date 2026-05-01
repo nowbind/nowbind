@@ -22,6 +22,7 @@ import {
   Github,
   Code2,
   Globe,
+  Sparkles,
 } from "lucide-react";
 
 import type { Editor, Range } from "@tiptap/core";
@@ -39,6 +40,20 @@ interface CommandGroup {
 }
 
 export const commandGroups: CommandGroup[] = [
+  {
+    heading: "AI",
+    items: [
+      {
+        title: "Continue Writing",
+        description: "Use AI to complete your thoughts",
+        icon: <Sparkles className="h-4 w-4" />,
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).run();
+          window.dispatchEvent(new CustomEvent("ai-continue"));
+        },
+      },
+    ],
+  },
   {
     heading: "Headings",
     items: [
@@ -348,7 +363,7 @@ export function SlashCommandList({ query, command }: SlashCommandListProps) {
                 onClick={() => command(item)}
                 onMouseEnter={() => setSelectedIndex(currentIndex)}
               >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border bg-background">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground">
                   {item.icon}
                 </div>
                 <div className="min-w-0">
