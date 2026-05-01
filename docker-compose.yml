@@ -60,7 +60,9 @@ services:
       dockerfile: Dockerfile
       target: runtime
     container_name: nowbind-frontend
-    env_file: ./frontend/.env.local
+    env_file:
+      - path: ./frontend/.env.local
+        required: false
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8080/api/v1
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
