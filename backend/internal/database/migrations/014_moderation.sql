@@ -3,7 +3,7 @@
 -- Allows admins to review "flag_for_review" content.
 
 CREATE TABLE IF NOT EXISTS moderation_flags (
-    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     entity_type TEXT NOT NULL CHECK (entity_type IN ('post', 'comment')),
     entity_id   UUID NOT NULL,
     label       TEXT NOT NULL,
