@@ -52,7 +52,7 @@ func safePostError(err error) string {
 func safeSocialError(err error) string {
 	msg := err.Error()
 	switch msg {
-	case "already following", "not following",
+	case "not following",
 		"cannot follow yourself", "user not found",
 		"already liked", "not liked",
 		"already bookmarked", "not bookmarked":

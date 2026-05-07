@@ -108,10 +108,13 @@ export default function ProfilePage() {
         // Re-fetch each author with auth to get correct is_following state
         const enriched = await Promise.all(
           authors.map((a) =>
-            api.getSilent<User>(`/users/${a.username}`)
-              .then((fresh) => (fresh ? { ...a, is_following: fresh.is_following } : a))
-              .catch(() => a)
-          )
+            api
+              .getSilent<User>(`/users/${a.username}`)
+              .then((fresh) =>
+                fresh ? { ...a, is_following: fresh.is_following } : a,
+              )
+              .catch(() => a),
+          ),
         );
         setSuggested(enriched);
       })
@@ -308,13 +311,27 @@ export default function ProfilePage() {
                         key={u.id}
                         user={u}
                         me={user}
-                        onFollowToggle={(nowFollowing) =>
+                        onFollowToggle={(nowFollowing) => {
+                          setFollowers((prev) =>
+                            prev.map((item) =>
+                              item.id === u.id
+                                ? { ...item, is_following: nowFollowing }
+                                : item,
+                            ),
+                          );
                           setProfile((prev) =>
                             prev
-                              ? { ...prev, following_count: prev.following_count + (nowFollowing ? 1 : -1) }
-                              : prev
-                          )
-                        }
+                              ? {
+                                  ...prev,
+                                  following_count: Math.max(
+                                    0,
+                                    prev.following_count +
+                                      (nowFollowing ? 1 : -1),
+                                  ),
+                                }
+                              : prev,
+                          );
+                        }}
                       />
                     ))}
                   </div>
@@ -353,13 +370,27 @@ export default function ProfilePage() {
                         key={u.id}
                         user={u}
                         me={user}
-                        onFollowToggle={(nowFollowing) =>
+                        onFollowToggle={(nowFollowing) => {
+                          setFollowing((prev) =>
+                            prev.map((item) =>
+                              item.id === u.id
+                                ? { ...item, is_following: nowFollowing }
+                                : item,
+                            ),
+                          );
                           setProfile((prev) =>
                             prev
-                              ? { ...prev, following_count: prev.following_count + (nowFollowing ? 1 : -1) }
-                              : prev
-                          )
-                        }
+                              ? {
+                                  ...prev,
+                                  following_count: Math.max(
+                                    0,
+                                    prev.following_count +
+                                      (nowFollowing ? 1 : -1),
+                                  ),
+                                }
+                              : prev,
+                          );
+                        }}
                       />
                     ))}
                   </div>
@@ -388,13 +419,27 @@ export default function ProfilePage() {
                       user={u}
                       me={user}
                       showFollow
-                      onFollowToggle={(nowFollowing) =>
+                      onFollowToggle={(nowFollowing) => {
+                        setSuggested((prev) =>
+                          prev.map((item) =>
+                            item.id === u.id
+                              ? { ...item, is_following: nowFollowing }
+                              : item,
+                          ),
+                        );
                         setProfile((prev) =>
                           prev
-                            ? { ...prev, following_count: prev.following_count + (nowFollowing ? 1 : -1) }
-                            : prev
-                        )
-                      }
+                            ? {
+                                ...prev,
+                                following_count: Math.max(
+                                  0,
+                                  prev.following_count +
+                                    (nowFollowing ? 1 : -1),
+                                ),
+                              }
+                            : prev,
+                        );
+                      }}
                     />
                   ))}
                 </div>
