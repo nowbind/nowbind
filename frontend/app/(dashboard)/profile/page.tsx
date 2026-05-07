@@ -40,15 +40,6 @@ export default function ProfilePage() {
   const [followingPage, setFollowingPage] = useState(1);
   const [followersTotalPages, setFollowersTotalPages] = useState(1);
   const [followingTotalPages, setFollowingTotalPages] = useState(1);
-  const [followersRefreshKey, setFollowersRefreshKey] = useState(0);
-  const [followingRefreshKey, setFollowingRefreshKey] = useState(0);
-  const [suggestedRefreshKey, setSuggestedRefreshKey] = useState(0);
-
-  const refreshFollowLists = () => {
-    setFollowersRefreshKey((key) => key + 1);
-    setFollowingRefreshKey((key) => key + 1);
-    setSuggestedRefreshKey((key) => key + 1);
-  };
 
   useEffect(() => {
     if (authLoading) return;
@@ -82,7 +73,7 @@ export default function ProfilePage() {
         setFollowersTotalPages(res.total_pages);
       })
       .catch((err) => console.error("Failed to load followers:", err));
-  }, [user, followersPage, followersRefreshKey]);
+  }, [user, followersPage]);
 
   useEffect(() => {
     if (!user) return;
@@ -96,7 +87,7 @@ export default function ProfilePage() {
         setFollowingTotalPages(res.total_pages);
       })
       .catch((err) => console.error("Failed to load following:", err));
-  }, [user, followingPage, followingRefreshKey]);
+  }, [user, followingPage]);
 
   // Fetch suggested users to follow (from explore/recent authors)
   useEffect(() => {
@@ -128,7 +119,7 @@ export default function ProfilePage() {
         setSuggested(enriched);
       })
       .catch((err) => console.error("Failed to load suggested users:", err));
-  }, [user, suggestedRefreshKey]);
+  }, [user]);
 
   if (authLoading || loading) {
     return (
@@ -340,7 +331,6 @@ export default function ProfilePage() {
                                 }
                               : prev,
                           );
-                          refreshFollowLists();
                         }}
                       />
                     ))}
@@ -400,7 +390,6 @@ export default function ProfilePage() {
                                 }
                               : prev,
                           );
-                          refreshFollowLists();
                         }}
                       />
                     ))}
@@ -450,8 +439,6 @@ export default function ProfilePage() {
                               }
                             : prev,
                         );
-                        // Re-fetch follower/following lists to stay in sync
-                        refreshFollowLists();
                       }}
                     />
                   ))}
