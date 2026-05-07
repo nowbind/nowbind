@@ -3,18 +3,21 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/nowbind/nowbind/internal/config"
 	"github.com/nowbind/nowbind/internal/middleware"
 	"github.com/nowbind/nowbind/internal/service"
 )
 
 type PasskeyHandler struct {
 	passkey *service.PasskeyService
+	cfg     *config.Config
 }
 
-func NewPasskeyHandler(passkey *service.PasskeyService) *PasskeyHandler {
-	return &PasskeyHandler{passkey: passkey}
+func NewPasskeyHandler(passkey *service.PasskeyService, cfg *config.Config) *PasskeyHandler {
+	return &PasskeyHandler{passkey: passkey, cfg: cfg}
 }
 
 type beginRegistrationRequest struct {
@@ -113,25 +116,9 @@ func (h *PasskeyHandler) FinishLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set auth cookies (reuse logic from AuthHandler)
-	http.SetCookie(w, &http.Cookie{
-		Name:     "access_token",
-		Value:    accessToken,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   r.URL.Scheme == "https",
-		SameSite: http.SameSiteLaxMode,
-		MaxAge:   900,
-	})
-	http.SetCookie(w, &http.Cookie{
-		Name:     "refresh_token",
-		Value:    session.RefreshToken,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   r.URL.Scheme == "https",
-		SameSite: http.SameSiteLaxMode,
-		MaxAge:   int(session.ExpiresAt.Sub(session.CreatedAt).Seconds()),
-	})
+	// Set auth cookies using the same policy as all other auth flows
+	// (COOKIE_DOMAIN, SameSite=None for cross-subdomain, production-aware Secure).
+	applyAuthCookies(w, h.cfg, accessToken, session.RefreshToken, session.ExpiresAt)
 
 	writeJSON(w, http.StatusOK, user)
 }

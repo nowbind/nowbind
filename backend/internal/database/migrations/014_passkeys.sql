@@ -1,7 +1,7 @@
 -- 014_passkeys.sql: WebAuthn/Passkey authentication support
 
 CREATE TABLE IF NOT EXISTS passkey_credentials (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     credential_id BYTEA NOT NULL UNIQUE,
     public_key BYTEA NOT NULL,
@@ -17,7 +17,7 @@ CREATE INDEX IF NOT EXISTS idx_passkey_credentials_user_id ON passkey_credential
 CREATE INDEX IF NOT EXISTS idx_passkey_credentials_credential_id ON passkey_credentials(credential_id);
 
 CREATE TABLE IF NOT EXISTS passkey_challenges (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     email VARCHAR(255),
     challenge BYTEA NOT NULL,
