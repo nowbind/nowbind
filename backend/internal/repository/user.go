@@ -250,6 +250,19 @@ func (r *UserRepository) SearchAuthors(ctx context.Context, query string, page, 
 	return users, total, nil
 }
 
+func (r *UserRepository) IsUserBanned(ctx context.Context, userID string) (bool, error) {
+	var banned bool
+	err := r.pool.QueryRow(ctx,
+		`SELECT EXISTS(
+			SELECT 1 FROM user_bans
+			WHERE user_id = $1
+			  AND (banned_until IS NULL OR banned_until > NOW())
+		)`,
+		userID,
+	).Scan(&banned)
+	return banned, err
+}
+
 func applyGravatar(user *model.User) {
 	if user.AvatarURL == "" && user.Email != "" {
 		user.AvatarURL = pkg.GravatarURL(user.Email, 200)

@@ -7,6 +7,7 @@ import { Logo } from "@/components/shared/logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasskeyLoginButton } from "@/components/auth/passkey-login-button";
 import { api, ApiError } from "@/lib/api";
 import { API_URL } from "@/lib/constants";
 import { useAuth } from "@/lib/hooks/use-auth";
@@ -180,6 +181,8 @@ function LoginContent() {
           <>
             {/* OAuth buttons */}
             <div className="space-y-3">
+              <PasskeyLoginButton />
+
               <Button
                 variant="outline"
                 className="w-full"

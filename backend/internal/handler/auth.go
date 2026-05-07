@@ -362,10 +362,13 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
-func (h *AuthHandler) setAuthCookies(w http.ResponseWriter, accessToken, refreshToken string, refreshExpiry time.Time) {
-	secure := h.cfg.Environment == "production"
+// applyAuthCookies is a package-level helper so any handler (AuthHandler,
+// PasskeyHandler, …) can write auth cookies using the same COOKIE_DOMAIN /
+// SameSite=None / Secure policy without duplicating the logic.
+func applyAuthCookies(w http.ResponseWriter, cfg *config.Config, accessToken, refreshToken string, refreshExpiry time.Time) {
+	secure := cfg.Environment == "production"
 	sameSite := http.SameSiteLaxMode
-	if h.cfg.CookieDomain != "" {
+	if cfg.CookieDomain != "" {
 		// Cross-subdomain: need SameSite=None with Secure
 		sameSite = http.SameSiteNoneMode
 		secure = true
@@ -374,7 +377,7 @@ func (h *AuthHandler) setAuthCookies(w http.ResponseWriter, accessToken, refresh
 		Name:     "access_token",
 		Value:    accessToken,
 		Path:     "/",
-		Domain:   h.cfg.CookieDomain,
+		Domain:   cfg.CookieDomain,
 		HttpOnly: true,
 		Secure:   secure,
 		SameSite: sameSite,
@@ -384,12 +387,16 @@ func (h *AuthHandler) setAuthCookies(w http.ResponseWriter, accessToken, refresh
 		Name:     "refresh_token",
 		Value:    refreshToken,
 		Path:     "/",
-		Domain:   h.cfg.CookieDomain,
+		Domain:   cfg.CookieDomain,
 		HttpOnly: true,
 		Secure:   secure,
 		SameSite: sameSite,
 		MaxAge:   int(time.Until(refreshExpiry).Seconds()),
 	})
+}
+
+func (h *AuthHandler) setAuthCookies(w http.ResponseWriter, accessToken, refreshToken string, refreshExpiry time.Time) {
+	applyAuthCookies(w, h.cfg, accessToken, refreshToken, refreshExpiry)
 }
 
 func (h *AuthHandler) clearAuthCookies(w http.ResponseWriter) {
