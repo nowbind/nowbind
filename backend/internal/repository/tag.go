@@ -115,3 +115,85 @@ func (r *TagRepository) UpdatePostCounts(ctx context.Context) error {
 		)`)
 	return err
 }
+
+// ---------------------------------------------------------------------------
+// Tag suggestion methods (for autotag ML service)
+// ---------------------------------------------------------------------------
+
+// GetAllTagNames returns all tag names in the platform, ordered by popularity.
+// Used for fuzzy matching in the ML service.
+func (r *TagRepository) GetAllTagNames(ctx context.Context) ([]string, error) {
+	rows, err := r.pool.Query(ctx, `SELECT name FROM tags ORDER BY post_count DESC LIMIT 500`)
+	if err != nil {
+		return nil, fmt.Errorf("query tags: %w", err)
+	}
+	defer rows.Close()
+
+	var names []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		names = append(names, name)
+	}
+	return names, nil
+}
+
+// UpsertSuggestedTag inserts or updates an ML-suggested tag for a post.
+func (r *TagRepository) UpsertSuggestedTag(
+	ctx context.Context,
+	postID, keyword string,
+	score float64,
+	isExistingTag bool,
+	matchedTag string,
+) error {
+	_, err := r.pool.Exec(ctx, `
+		INSERT INTO post_tag_suggestions (post_id, keyword, score, is_existing_tag, matched_tag)
+		VALUES ($1, $2, $3, $4, NULLIF($5, ''))
+		ON CONFLICT (post_id, keyword)
+		DO UPDATE SET
+			score           = EXCLUDED.score,
+			is_existing_tag = EXCLUDED.is_existing_tag,
+			matched_tag     = EXCLUDED.matched_tag
+	`, postID, keyword, score, isExistingTag, matchedTag)
+	return err
+}
+
+// MarkSuggestionAccepted marks a tag suggestion as accepted or dismissed.
+func (r *TagRepository) MarkSuggestionAccepted(ctx context.Context, postID, keyword string, accepted bool) error {
+	_, err := r.pool.Exec(ctx, `
+		UPDATE post_tag_suggestions
+		SET accepted = $3, accepted_at = NOW()
+		WHERE post_id = $1 AND keyword = $2
+	`, postID, keyword, accepted)
+	return err
+}
+
+// GetSuggestionsForPost returns all ML-suggested tags for a post.
+func (r *TagRepository) GetSuggestionsForPost(ctx context.Context, postID string) ([]model.PostTagSuggestion, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT id, post_id, keyword, score, is_existing_tag, matched_tag, accepted, accepted_at, created_at
+		FROM post_tag_suggestions
+		WHERE post_id = $1
+		ORDER BY score DESC
+	`, postID)
+	if err != nil {
+		return nil, fmt.Errorf("query suggestions: %w", err)
+	}
+	defer rows.Close()
+
+	var suggestions []model.PostTagSuggestion
+	for rows.Next() {
+		var s model.PostTagSuggestion
+		if err := rows.Scan(
+			&s.ID, &s.PostID, &s.Keyword, &s.Score,
+			&s.IsExistingTag, &s.MatchedTag, &s.Accepted,
+			&s.AcceptedAt, &s.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scanning suggestion: %w", err)
+		}
+		suggestions = append(suggestions, s)
+	}
+	return suggestions, nil
+}

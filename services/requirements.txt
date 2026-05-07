@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+detoxify
+transformers
+torch
+torchvision
+Pillow
+httpx
+python-multipart
+pydantic
+pytest
+keybert
+rapidfuzz
+yake
+sentence-transformers

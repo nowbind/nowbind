@@ -25,25 +25,32 @@ type MediaService struct {
 }
 
 func NewMediaService(cfg *config.Config, repo *repository.MediaRepository) *MediaService {
-	s3Client := s3.New(s3.Options{
-		Region: "auto",
-		BaseEndpoint: aws.String(
-			fmt.Sprintf("https://%s.r2.cloudflarestorage.com", cfg.R2AccountID),
-		),
-		Credentials: credentials.NewStaticCredentialsProvider(
-			cfg.R2AccessKeyID, cfg.R2SecretKey, "",
-		),
-	})
-
-	return &MediaService{
-		s3Client:  s3Client,
-		bucket:    cfg.R2BucketName,
-		publicURL: cfg.R2PublicURL,
-		repo:      repo,
+	ms := &MediaService{
+		repo: repo,
 	}
+
+	if cfg.R2AccountID != "" && cfg.R2AccessKeyID != "" && cfg.R2SecretKey != "" {
+		ms.s3Client = s3.New(s3.Options{
+			Region: "auto",
+			BaseEndpoint: aws.String(
+				fmt.Sprintf("https://%s.r2.cloudflarestorage.com", cfg.R2AccountID),
+			),
+			Credentials: credentials.NewStaticCredentialsProvider(
+				cfg.R2AccessKeyID, cfg.R2SecretKey, "",
+			),
+		})
+		ms.bucket = cfg.R2BucketName
+		ms.publicURL = cfg.R2PublicURL
+	}
+
+	return ms
 }
 
 func (s *MediaService) Upload(ctx context.Context, userID string, file io.Reader, originalName string, mimeType string, size int64) (*model.Media, error) {
+	if s.s3Client == nil {
+		return nil, fmt.Errorf("media storage is not configured — set R2 credentials")
+	}
+
 	ext := filepath.Ext(originalName)
 	if ext == "" {
 		ext = mimeExtension(mimeType)
@@ -83,6 +90,10 @@ func (s *MediaService) Upload(ctx context.Context, userID string, file io.Reader
 }
 
 func (s *MediaService) Delete(ctx context.Context, mediaID, userID string) error {
+	if s.s3Client == nil {
+		return fmt.Errorf("media storage is not configured")
+	}
+
 	media, err := s.repo.GetByID(ctx, mediaID)
 	if err != nil {
 		return err

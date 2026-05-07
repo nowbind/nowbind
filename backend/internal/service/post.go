@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
@@ -201,6 +202,48 @@ func (s *PostService) Publish(ctx context.Context, postID, authorID string) erro
 	if post.AuthorID != authorID {
 		return fmt.Errorf("unauthorized")
 	}
+
+	// Check if the post already has user-assigned tags (GetByID doesn't load Tags)
+	hasTags, err := s.posts.HasTags(ctx, postID)
+	if err != nil {
+		log.Printf("Publish: failed to check existing tags for post %s: %v", postID, err)
+	}
+
+	if !hasTags {
+		suggestions, err := s.tags.GetSuggestionsForPost(ctx, postID)
+		if err != nil {
+			log.Printf("Publish: failed to get suggestions for post %s: %v", postID, err)
+		}
+		if err == nil && len(suggestions) > 0 {
+			limit := 3
+			if len(suggestions) < limit {
+				limit = len(suggestions)
+			}
+			var tagNames []string
+			for i := 0; i < limit; i++ {
+				tagName := suggestions[i].Keyword
+				if suggestions[i].MatchedTag != nil && *suggestions[i].MatchedTag != "" {
+					tagName = *suggestions[i].MatchedTag
+				}
+				tagNames = append(tagNames, tagName)
+				// Mark suggestion as accepted
+				if err := s.tags.MarkSuggestionAccepted(ctx, postID, suggestions[i].Keyword, true); err != nil {
+					log.Printf("Publish: failed to mark suggestion accepted for post %s, keyword %q: %v", postID, suggestions[i].Keyword, err)
+				}
+			}
+
+			tagIDs, err := s.ensureTags(ctx, tagNames)
+			if err != nil {
+				log.Printf("Publish: failed to ensure tags for post %s: %v", postID, err)
+			}
+			if err == nil && len(tagIDs) > 0 {
+				if err := s.posts.SetTags(ctx, postID, tagIDs); err != nil {
+					log.Printf("Publish: failed to auto-set tags for post %s: %v", postID, err)
+				}
+			}
+		}
+	}
+
 	if err := s.posts.Publish(ctx, postID); err != nil {
 		return err
 	}

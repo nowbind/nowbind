@@ -13,13 +13,14 @@ import (
 )
 
 type SocialHandler struct {
-	social    *service.SocialService
-	follows   *repository.FollowRepository
-	likes     *repository.LikeRepository
-	bookmarks *repository.BookmarkRepository
-	comments  *repository.CommentRepository
-	posts     *repository.PostRepository
-	users     *repository.UserRepository
+	social            *service.SocialService
+	follows           *repository.FollowRepository
+	likes             *repository.LikeRepository
+	bookmarks         *repository.BookmarkRepository
+	comments          *repository.CommentRepository
+	posts             *repository.PostRepository
+	users             *repository.UserRepository
+	moderationService *service.ModerationService
 }
 
 func NewSocialHandler(
@@ -30,15 +31,17 @@ func NewSocialHandler(
 	comments *repository.CommentRepository,
 	posts *repository.PostRepository,
 	users *repository.UserRepository,
+	moderationService *service.ModerationService,
 ) *SocialHandler {
 	return &SocialHandler{
-		social:    social,
-		follows:   follows,
-		likes:     likes,
-		bookmarks: bookmarks,
-		comments:  comments,
-		posts:     posts,
-		users:     users,
+		social:            social,
+		follows:           follows,
+		likes:             likes,
+		bookmarks:         bookmarks,
+		comments:          comments,
+		posts:             posts,
+		users:             users,
+		moderationService: moderationService,
 	}
 }
 
@@ -378,6 +381,18 @@ func (h *SocialHandler) CreateComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Run content moderation before persisting.
+	// Comments have no draft/review state, so block on ANY unsafe result.
+	if h.moderationService.Enabled() {
+		outcome := h.moderationService.ModerateComment(r.Context(), "", req.Content)
+		if outcome.Blocked {
+			writeJSON(w, http.StatusUnprocessableEntity, map[string]string{
+				"error": outcome.Message,
+			})
+			return
+		}
+	}
+
 	comment := &model.Comment{
 		PostID:   postID,
 		AuthorID: userID,
@@ -424,6 +439,17 @@ func (h *SocialHandler) UpdateComment(w http.ResponseWriter, r *http.Request) {
 	if len(req.Content) > 10000 {
 		writeError(w, http.StatusBadRequest, "comment too long (max 10000 characters)")
 		return
+	}
+
+	// Run content moderation before persisting the edit
+	if h.moderationService.Enabled() {
+		outcome := h.moderationService.ModerateComment(r.Context(), commentID, req.Content)
+		if outcome.Blocked {
+			writeJSON(w, http.StatusUnprocessableEntity, map[string]string{
+				"error": outcome.Message,
+			})
+			return
+		}
 	}
 
 	if err := h.comments.Update(r.Context(), commentID, req.Content); err != nil {

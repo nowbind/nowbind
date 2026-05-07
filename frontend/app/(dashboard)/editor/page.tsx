@@ -9,7 +9,7 @@ import { PostSettingsPanel } from "@/components/editor/post-settings-panel";
 import { PostContent } from "@/components/post/post-content";
 import { useMediaUpload } from "@/lib/hooks/use-media-upload";
 import { useAutosave } from "@/lib/hooks/use-autosave";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/hooks/use-auth";
 import type { JSONContent } from "novel";
 import {
@@ -49,8 +49,10 @@ export default function EditorPage() {
   const [publishing, setPublishing] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+  const [contentText, setContentText] = useState("");
 
-  // Track the auto-created draft post ID
+  // Track the auto-created draft post ID in state to trigger re-renders
+  const [draftId, setDraftId] = useState<string | null>(null);
   const draftIdRef = useRef<string | null>(null);
   const draftSlugRef = useRef<string | null>(null);
 
@@ -59,6 +61,8 @@ export default function EditorPage() {
   titleRef.current = title;
   const subtitleRef = useRef(subtitle);
   subtitleRef.current = subtitle;
+  const contentTextRef = useRef(contentText);
+  contentTextRef.current = contentText;
   const contentJSONRef = useRef(contentJSON);
   contentJSONRef.current = contentJSON;
   const excerptRef = useRef(excerpt);
@@ -99,6 +103,7 @@ export default function EditorPage() {
           payload,
         );
         draftIdRef.current = post.id;
+        setDraftId(post.id);
         draftSlugRef.current = post.slug;
       }
       return true;
@@ -210,8 +215,15 @@ export default function EditorPage() {
       await api.post(`/posts/${postId}/publish`);
       markClean();
       router.push(`/post/${postSlug}`);
-    } catch {
-      toast.error("Failed to publish");
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 422) {
+        toast.error("Content Policy Violation", {
+          description: err.message || "Your post was blocked by our content moderation system.",
+          duration: 8000,
+        });
+      } else {
+        toast.error("Failed to publish");
+      }
     } finally {
       setPublishing(false);
     }
@@ -411,6 +423,17 @@ export default function EditorPage() {
             <BlockEditor
               onChange={(json) => {
                 setContentJSON(json);
+                try {
+                  const extractText = (node: any): string => {
+                    if (!node) return "";
+                    if (node.text) return node.text;
+                    if (node.content) return node.content.map(extractText).join(" ");
+                    return "";
+                  };
+                  setContentText(extractText(json));
+                } catch {
+                  // noop
+                }
                 markDirty();
               }}
               onImageUpload={uploadMedia}
@@ -448,6 +471,10 @@ export default function EditorPage() {
           setFeatureImage(v);
           markDirty();
         }}
+        postId={draftId || "new"}
+        title={title}
+        subtitle={subtitle}
+        content={contentText}
       />
     </div>
   );

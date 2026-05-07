@@ -9,6 +9,7 @@ frontend/.next/
 frontend/out/
 backend/bin/
 backend/tmp/
+backend/nowbind-backend
 
 # Environment
 .env
@@ -59,3 +60,4 @@ scripts/node_modules/
 docs/post-drafts
 docs/
 AGENTS.md
+*venv
