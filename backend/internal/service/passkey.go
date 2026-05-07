@@ -244,6 +244,15 @@ func (s *PasskeyService) FinishLogin(ctx context.Context, assertionJSON []byte) 
 		return nil, nil, "", fmt.Errorf("user not found")
 	}
 
+	// Check if user is banned
+	banned, err := s.userRepo.IsUserBanned(ctx, user.ID)
+	if err != nil {
+		return nil, nil, "", fmt.Errorf("checking ban status: %w", err)
+	}
+	if banned {
+		return nil, nil, "", fmt.Errorf("account suspended")
+	}
+
 	waUser := &webAuthnUser{
 		id:          []byte(user.ID),
 		name:        user.Email,

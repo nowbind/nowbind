@@ -160,6 +160,15 @@ func (s *AuthService) HandleGoogleCallback(ctx context.Context, code, clientID, 
 		return nil, nil, "", fmt.Errorf("upserting google user: %w", err)
 	}
 
+	// Check if user is banned
+	banned, err := s.users.IsUserBanned(ctx, user.ID)
+	if err != nil {
+		return nil, nil, "", fmt.Errorf("checking ban status: %w", err)
+	}
+	if banned {
+		return nil, nil, "", fmt.Errorf("account suspended")
+	}
+
 	// Create session
 	session, err := s.sessions.Create(ctx, user.ID)
 	if err != nil {
@@ -270,6 +279,15 @@ func (s *AuthService) HandleGitHubCallback(ctx context.Context, code, clientID, 
 		return nil, nil, "", fmt.Errorf("upserting github user: %w", err)
 	}
 
+	// Check if user is banned
+	banned, err := s.users.IsUserBanned(ctx, user.ID)
+	if err != nil {
+		return nil, nil, "", fmt.Errorf("checking ban status: %w", err)
+	}
+	if banned {
+		return nil, nil, "", fmt.Errorf("account suspended")
+	}
+
 	session, err := s.sessions.Create(ctx, user.ID)
 	if err != nil {
 		return nil, nil, "", err
@@ -303,6 +321,15 @@ func (s *AuthService) DevLogin(ctx context.Context, email string) (*model.User, 
 		if err := s.users.Create(ctx, user); err != nil {
 			return nil, nil, "", fmt.Errorf("creating dev user: %w", err)
 		}
+	}
+
+	// Check if user is banned
+	banned, err := s.users.IsUserBanned(ctx, user.ID)
+	if err != nil {
+		return nil, nil, "", fmt.Errorf("checking ban status: %w", err)
+	}
+	if banned {
+		return nil, nil, "", fmt.Errorf("account suspended")
 	}
 
 	session, err := s.sessions.Create(ctx, user.ID)

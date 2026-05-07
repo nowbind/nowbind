@@ -74,7 +74,7 @@ func New(pool *pgxpool.Pool, cfg *config.Config) *chi.Mux {
 	mediaH := handler.NewMediaHandler(mediaService)
 	importService := service.NewImportService(postRepo, tagRepo)
 	importH := handler.NewImportHandler(importService)
-	passkeyH := handler.NewPasskeyHandler(passkeyService)
+	passkeyH := handler.NewPasskeyHandler(passkeyService, cfg)
 
 	// Health
 	r.Get("/health", healthH.Health)
